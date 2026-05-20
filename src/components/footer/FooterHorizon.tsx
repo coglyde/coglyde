@@ -1,15 +1,12 @@
 export function FooterHorizon() {
-  const horizonSize = {
+  const horizonStyle = {
     width: "240vw",
     height: "400vw",
-    bottom: "-375vw",
+    bottom: "calc(-400vw + 400px)",
   } as const;
 
   const edgeFadeMask =
-    "linear-gradient(to right, transparent 0%, rgba(0,0,0,0.08) 18%, black 40%, black 60%, rgba(0,0,0,0.08) 82%, transparent 100%)";
-
-  const brightCoreMask =
-    "linear-gradient(to right, transparent 35%, rgba(0,0,0,0.3) 42%, black 48%, black 52%, rgba(0,0,0,0.3) 58%, transparent 65%)";
+    "linear-gradient(to right, transparent 18%, rgba(0,0,0,0.28) 29%, rgba(0,0,0,0.7) 40%, black 48%, black 52%, rgba(0,0,0,0.7) 60%, rgba(0,0,0,0.28) 71%, transparent 82%)";
 
   return (
     <div
@@ -19,46 +16,34 @@ export function FooterHorizon() {
       <div
         className="absolute left-1/2 -translate-x-1/2 rounded-[50%]"
         style={{
-          width: "70vw",
-          height: "42vw",
-          bottom: "20vw",
+          width: "46vw",
+          height: "22vw",
+          bottom: "400px",
           background:
-            "radial-gradient(ellipse at 50% 100%, rgba(230,215,255,0.32) 0%, rgba(180,140,240,0.16) 22%, rgba(139,92,246,0.06) 48%, transparent 68%)",
-          filter: "blur(18px)",
+            "radial-gradient(ellipse at 50% 100%, rgba(240,220,255,0.32) 0%, rgba(200,160,240,0.16) 26%, rgba(150,100,230,0.06) 52%, transparent 74%)",
+          filter: "blur(26px)",
         }}
       />
 
       <div
         className="absolute left-1/2 -translate-x-1/2 rounded-[50%]"
         style={{
-          width: "32vw",
-          height: "20vw",
-          bottom: "22vw",
+          width: "14vw",
+          height: "7vw",
+          bottom: "400px",
           background:
-            "radial-gradient(ellipse at 50% 100%, rgba(255,245,255,0.4) 0%, rgba(222,200,255,0.18) 30%, transparent 60%)",
-          filter: "blur(8px)",
+            "radial-gradient(ellipse at 50% 100%, rgba(255,255,255,0.7) 0%, rgba(252,240,255,0.32) 26%, rgba(220,190,245,0.12) 52%, transparent 72%)",
+          filter: "blur(6px)",
         }}
       />
 
       <div
         className="absolute left-1/2 -translate-x-1/2 rounded-[50%]"
         style={{
-          ...horizonSize,
-          border: "1.5px solid rgba(255,255,255,0.75)",
+          ...horizonStyle,
+          border: "1.5px solid rgba(255,255,255,0.9)",
           WebkitMaskImage: edgeFadeMask,
           maskImage: edgeFadeMask,
-        }}
-      />
-
-      <div
-        className="absolute left-1/2 -translate-x-1/2 rounded-[50%]"
-        style={{
-          ...horizonSize,
-          border: "2px solid rgba(255,255,255,1)",
-          boxShadow:
-            "0 0 14px rgba(255,255,255,0.55), 0 0 32px rgba(236,221,255,0.32)",
-          WebkitMaskImage: brightCoreMask,
-          maskImage: brightCoreMask,
         }}
       />
     </div>

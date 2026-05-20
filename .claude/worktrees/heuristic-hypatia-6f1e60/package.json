@@ -1,0 +1,7 @@
+{
+  "name": "coglyde-worktree-proxy",
+  "private": true,
+  "scripts": {
+    "dev": "cd /Users/keremgurel/Documents2/GitHub/coglyde && npm run dev"
+  }
+}

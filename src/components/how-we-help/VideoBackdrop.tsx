@@ -26,8 +26,8 @@ export function VideoBackdrop({ src = DEFAULT_VIDEO }: VideoBackdropProps) {
         preload="metadata"
         className="absolute inset-0 h-full w-full scale-[1.05] object-cover"
       />
-      <div className="absolute inset-0 bg-black/35" />
-      <div className="absolute inset-0 bg-[radial-gradient(120%_90%_at_50%_50%,transparent_40%,rgba(0,0,0,0.6)_100%)]" />
+      <div className="absolute inset-0 bg-black/55" />
+      <div className="absolute inset-0 bg-[radial-gradient(120%_90%_at_50%_50%,transparent_30%,rgba(0,0,0,0.75)_100%)]" />
     </div>
   );
 }

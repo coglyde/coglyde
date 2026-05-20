@@ -1,8 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
+import { ServicesDropdown } from "./header/ServicesDropdown";
 
 const navLinks = [
-  { label: "Services", href: "#services" },
   { label: "Blog", href: "#blog" },
   { label: "Contact", href: "#contact" },
 ];
@@ -21,7 +21,8 @@ export function Header() {
             className="h-8 w-auto"
           />
         </Link>
-        <nav className="hidden items-center gap-8 text-sm text-white/80 md:flex">
+        <nav className="hidden items-center gap-9 text-[0.95rem] font-normal tracking-[0.04em] text-white/70 md:flex">
+          <ServicesDropdown />
           {navLinks.map((link) => (
             <a
               key={link.label}
@@ -34,7 +35,7 @@ export function Header() {
         </nav>
         <a
           href="#strategy-call"
-          className="group inline-flex items-center gap-2 rounded-full bg-white/95 px-4 py-2 text-sm font-medium text-black transition hover:bg-white"
+          className="group inline-flex items-center gap-2 rounded-full bg-white/95 px-4 py-2 text-[0.88rem] font-medium text-black transition hover:bg-white"
         >
           Strategy Call
           <span

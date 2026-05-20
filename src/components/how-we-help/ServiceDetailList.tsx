@@ -4,40 +4,45 @@ const details = [
   {
     title: "SEO",
     description:
-      "We optimize your website to rank higher on search engines, driving organic traffic and ensuring your audience finds you easily.",
+      "Rank higher on search engines, drive organic traffic, and make sure your audience finds you first.",
   },
   {
     title: "Paid Marketing",
     description:
-      "We target the right audiences through platforms like Facebook, Google, Instagram, TikTok, and YouTube. We maximize your reach and turn clicks into customers.",
+      "Target the right audiences across Facebook, Google, Instagram, TikTok, and YouTube, then turn clicks into customers.",
   },
   {
     title: "AI Adoption",
     description:
-      "We leverage AI to simplify complex operations and enhance efficiency. Plus, we'll guide your team to harness its full potential for lasting impact.",
+      "Bring AI into your operations to simplify complexity and lift efficiency, with hands-on guidance for your team.",
   },
   {
     title: "Automations",
     description:
-      "We save your team time and money by automating repetitive tasks, freeing you up to focus on the work that actually moves the needle.",
+      "Free your team from repetitive work so they can focus on the things that actually move the needle.",
   },
   {
     title: "Development",
     description:
-      "We build advanced, production-grade features tailored to your industry — fast, reliable, and architected to scale with your business.",
+      "Ship production-grade features tailored to your industry. Fast, reliable, and architected to scale.",
   },
   {
     title: "Design",
     description:
-      "We craft custom graphics, illustrations, animations, and 3D models that help your brand stand out and convert visitors into customers.",
+      "Custom graphics, illustrations, animations, and 3D that make your brand stand out and convert.",
   },
 ];
 
 export function ServiceDetailList() {
   return (
-    <div className="flex flex-col gap-4">
-      {details.map((detail) => (
-        <ServiceDetailCard key={detail.title} {...detail} />
+    <div className="grid grid-cols-1 gap-x-12 gap-y-10 sm:grid-cols-2">
+      {details.map((detail, i) => (
+        <ServiceDetailCard
+          key={detail.title}
+          title={detail.title}
+          description={detail.description}
+          index={i + 1}
+        />
       ))}
     </div>
   );

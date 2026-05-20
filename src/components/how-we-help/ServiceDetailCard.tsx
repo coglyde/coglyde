@@ -1,19 +1,35 @@
 type ServiceDetailCardProps = {
   title: string;
   description: string;
+  index: number;
 };
 
 export function ServiceDetailCard({
   title,
   description,
+  index,
 }: ServiceDetailCardProps) {
+  const label = String(index).padStart(2, "0");
+
   return (
-    <article className="rounded-3xl border border-white/15 bg-white/[0.06] px-8 py-7 text-center shadow-[0_20px_60px_-30px_rgba(123,57,252,0.5),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl">
-      <h3 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
-        {title}
-      </h3>
-      <div className="my-5 h-px w-full bg-white/15" />
-      <p className="mx-auto max-w-xl text-sm leading-relaxed text-white/80 sm:text-[15px]">
+    <article className="group relative pt-7">
+      <div
+        aria-hidden
+        className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-white/20 via-white/10 to-transparent"
+      />
+      <div
+        aria-hidden
+        className="absolute left-0 top-0 h-px w-12 bg-white/60 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+      />
+      <div className="flex items-baseline justify-between gap-4">
+        <h3 className="text-xl font-semibold tracking-tight text-white">
+          {title}
+        </h3>
+        <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-white/35">
+          {label}
+        </span>
+      </div>
+      <p className="mt-4 text-[13.5px] leading-relaxed text-white/65">
         {description}
       </p>
     </article>

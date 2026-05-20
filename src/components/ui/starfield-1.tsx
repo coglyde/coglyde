@@ -122,13 +122,20 @@ const Starfield = ({
       sd.current.z = (sd.current.w + sd.current.h) / 2;
       sd.current.star.colorRatio = 1 / sd.current.z;
 
-      if (cursor.current.x === 0 || cursor.current.y === 0) {
+      // Without mouse/tilt tracking, keep the cursor pinned to the new center
+      // every frame so a viewport resize doesn't leave a stale offset that
+      // would otherwise drift every star by `(old_center - new_center) >> 4`
+      // pixels per frame.
+      if (!mouseAdjust && !tiltAdjust) {
         cursor.current.x = sd.current.x;
         cursor.current.y = sd.current.y;
-      }
-      if (mouse.current.x === 0 || mouse.current.y === 0) {
-        mouse.current.x = cursor.current.x - sd.current.x;
-        mouse.current.y = cursor.current.y - sd.current.y;
+        mouse.current.x = 0;
+        mouse.current.y = 0;
+      } else if (cursor.current.x === 0 && cursor.current.y === 0) {
+        cursor.current.x = sd.current.x;
+        cursor.current.y = sd.current.y;
+        mouse.current.x = 0;
+        mouse.current.y = 0;
       }
     }
   };
@@ -394,12 +401,12 @@ const Starfield = ({
       stop();
       setState((prev) => ({ ...prev, stop: false }));
     }
-    if (state.start) {
-      init();
-      setState((prev) => ({ ...prev, start: false }));
-    }
+    // Intentionally do NOT call init() here for state.start; the mount effect
+    // above already does that. Calling it again would spawn a second RAF loop
+    // that can never be cancelled (animationFrameRef only tracks the latest id),
+    // doubling the apparent star speed forever.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.reset, state.stop, state.start]);
+  }, [state.reset, state.stop]);
 
   return (
     <div style={{ position: "absolute", width: "100%", height: "100%" }}>
