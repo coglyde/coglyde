@@ -19,6 +19,12 @@ body {
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
 
+/* framer-motion useScroll defaults its container to document.scrollingElement
+   (the <html> element). It must be non-static for scroll offsets to measure correctly. */
+html {
+  position: relative;
+}
+
 body {
   overflow-x: hidden;
 }

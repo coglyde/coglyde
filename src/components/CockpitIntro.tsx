@@ -10,16 +10,15 @@ type CockpitIntroProps = {
 const clamp = (v: number, min: number, max: number) =>
   Math.max(min, Math.min(max, v));
 
-const lerp = (
-  p: number,
-  startP: number,
-  endP: number,
-  startV: number,
-  endV: number,
-) => {
-  const t = clamp((p - startP) / (endP - startP), 0, 1);
-  return startV + t * (endV - startV);
-};
+// Linear 0..1 sub-progress of `p` within the window [start, end].
+const range = (p: number, start: number, end: number) =>
+  clamp((p - start) / (end - start), 0, 1);
+
+// How far the ship zooms. Geometric scaling (below) makes this feel like a
+// constant-velocity fly-through rather than a lurch.
+const SHIP_MAX_SCALE = 9;
+// Hero starts as a far-away point at the ship's vanishing center, then grows to 1.
+const HERO_START_SCALE = 0.06;
 
 export function CockpitIntro({ children }: CockpitIntroProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -38,16 +37,24 @@ export function CockpitIntro({ children }: CockpitIntroProps) {
       const rect = container.getBoundingClientRect();
       const scrollDistance = rect.height - window.innerHeight;
       if (scrollDistance <= 0) return;
+
+      // p maps 1:1 to scroll position across the pinned region.
       const p = clamp(-rect.top / scrollDistance, 0, 1);
 
-      const shipScale = lerp(p, 0, 0.3, 1, 11);
-      const shipOpacity = lerp(p, 0.22, 0.35, 1, 0);
-      const shipY = lerp(p, 0, 0.18, 0, -6);
-      ship.style.transform = `translateY(${shipY}%) scale(${shipScale})`;
+      // Ship: geometric (exponential) scale so each scroll tick changes the
+      // apparent zoom by the same ratio — the motion reads as a steady,
+      // wheel-paced fly-through instead of a fast lurch.
+      const shipScale = SHIP_MAX_SCALE ** range(p, 0, 0.82);
+      const shipOpacity = 1 - range(p, 0.55, 0.78);
+      ship.style.transform = `scale(${shipScale})`;
       ship.style.opacity = String(shipOpacity);
 
-      const heroScale = lerp(p, 0.25, 0.35, 0.04, 1);
-      const heroOpacity = lerp(p, 0.27, 0.35, 0, 1);
+      // Hero: emerges from the vanishing point as the ship passes and lands
+      // fully centered exactly at p = 1, so the pin releases the moment it
+      // settles — no dead scroll while it sits in the middle.
+      const heroScale =
+        HERO_START_SCALE * (1 / HERO_START_SCALE) ** range(p, 0.5, 1);
+      const heroOpacity = range(p, 0.6, 0.92);
       hero.style.transform = `scale(${heroScale})`;
       hero.style.opacity = String(heroOpacity);
     };
@@ -63,13 +70,17 @@ export function CockpitIntro({ children }: CockpitIntroProps) {
 
     update();
     window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+    window.addEventListener("resize", update);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", update);
+    };
   }, []);
 
   return (
     <div
       ref={containerRef}
-      className="h-[170vh]"
+      className="h-[200vh]"
       style={{ position: "relative", zIndex: 40, isolation: "isolate" }}
     >
       <div
@@ -82,7 +93,7 @@ export function CockpitIntro({ children }: CockpitIntroProps) {
           className="pointer-events-none absolute inset-0"
           style={{
             zIndex: 1,
-            transformOrigin: "50% 55%",
+            transformOrigin: "50% 50%",
             transform: "scale(1)",
             opacity: 1,
             willChange: "transform, opacity",
@@ -106,7 +117,7 @@ export function CockpitIntro({ children }: CockpitIntroProps) {
             ref={heroRef}
             className="flex max-w-[64rem] flex-col items-center px-6 text-center"
             style={{
-              transform: "scale(0.04)",
+              transform: `scale(${HERO_START_SCALE})`,
               opacity: 0,
               willChange: "transform, opacity",
             }}
