@@ -24,6 +24,11 @@ const GRADIENT = `linear-gradient(to bottom,
   rgba(0, 0, 0, 0) 100%
 )`;
 
+// A faint grey fill that sits beneath the gradient, so the not-yet-painted text
+// reads as a low-contrast dark grey instead of disappearing into the
+// background. The bright gradient band then paints over it as you scroll.
+const BASE_FILL = "linear-gradient(rgba(226, 232, 240, 0.18), rgba(226, 232, 240, 0.18))";
+
 export function ScrollRevealText({ text, className }: ScrollRevealTextProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const { scrollYProgress } = useScroll({
@@ -44,8 +49,10 @@ export function ScrollRevealText({ text, className }: ScrollRevealTextProps) {
           <motion.p
             className={className}
             style={{
-              backgroundImage: GRADIENT,
-              backgroundSize: "100% 600%",
+              // Moving gradient on top; the static grey fill shows through its
+              // transparent areas so the text is always faintly legible.
+              backgroundImage: `${GRADIENT}, ${BASE_FILL}`,
+              backgroundSize: "100% 600%, 100% 100%",
               backgroundRepeat: "no-repeat",
               backgroundPositionY,
               WebkitBackgroundClip: "text",
