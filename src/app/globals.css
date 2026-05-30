@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@plugin "@tailwindcss/typography";
 
 /* Tailwind v4's Preflight no longer forces a pointer cursor on buttons, so
    restore it site-wide for interactive elements (disabled stay default). */

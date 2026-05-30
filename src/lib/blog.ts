@@ -14,6 +14,7 @@ export type Post = {
   title: string;
   description: string;
   date: string | null;
+  image: string | null;
   draft: boolean;
   content: string;
 };
@@ -27,6 +28,7 @@ function readPost(slug: string): Post | null {
     title: typeof data.title === "string" ? data.title : slug,
     description: typeof data.description === "string" ? data.description : "",
     date: data.date ? String(data.date) : null,
+    image: typeof data.image === "string" ? data.image : null,
     draft: data.draft === true,
     content,
   };
