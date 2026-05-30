@@ -25,7 +25,7 @@ const columns: { title: string; links: LinkItem[] }[] = [
       { label: "LinkedIn", href: "https://linkedin.com", external: true },
       { label: "Twitter / X", href: "https://x.com", external: true },
       { label: "Instagram", href: "https://instagram.com", external: true },
-      { label: "Email", href: "mailto:hello@coglyde.com" },
+      { label: "Email", href: "mailto:info@coglyde.com" },
     ],
   },
 ];
@@ -39,14 +39,14 @@ export function FooterNav() {
           alt="Coglyde"
           width={430}
           height={125}
-          className="h-9 w-auto"
+          className="h-9 w-auto self-start"
         />
         <p className="max-w-xs text-[0.92rem] leading-[1.55] text-white/55">
           A Vancouver-based web design and digital marketing studio building
           sites that glide past the competition.
         </p>
         <div className="inline-flex w-fit items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 text-[0.72rem] font-medium tracking-wide text-white/55">
-          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
+          <span className="h-1.5 w-1.5 rounded-full bg-blue-400 shadow-[0_0_8px_rgba(96,165,250,0.8)]" />
           Available for new projects
         </div>
       </div>

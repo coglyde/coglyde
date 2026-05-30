@@ -1,5 +1,37 @@
 @import "tailwindcss";
 
+/* Tailwind v4's Preflight no longer forces a pointer cursor on buttons, so
+   restore it site-wide for interactive elements (disabled stay default). */
+@layer base {
+  /* Default to the arrow cursor everywhere so plain text doesn't show the
+     text-edit (I-beam) cursor and feel editable. */
+  body {
+    cursor: default;
+  }
+  /* Real text fields keep the text cursor. */
+  input,
+  textarea,
+  [contenteditable="true"] {
+    cursor: text;
+  }
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+}
+
+/* Hide the native scrollbar on horizontally-scrollable strips (stepper, mobile
+   sidebar) while keeping them scrollable. */
+@layer utilities {
+  .no-scrollbar {
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* old Edge/IE */
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none; /* Chrome, Safari */
+  }
+}
+
 :root {
   --background: #000000;
   --foreground: #ededed;

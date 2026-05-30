@@ -7,6 +7,7 @@ import { FeatureGrid } from "@/components/website-design/FeatureGrid";
 import { FrameworkSection } from "@/components/website-design/FrameworkSection";
 import { TrustedPartnerSection } from "@/components/website-design/TrustedPartnerSection";
 import { WebsiteDesignHero } from "@/components/website-design/WebsiteDesignHero";
+import { WebsiteDesignPricing } from "@/components/website-design/WebsiteDesignPricing";
 
 export const metadata: Metadata = {
   title: "Website Design that Stands Out | Coglyde",
@@ -25,6 +26,7 @@ export default function WebsiteDesignPage() {
         <FrameworkSection />
         <TrustedPartnerSection />
         <FaqSection />
+        <WebsiteDesignPricing />
       </main>
       <Footer />
     </>

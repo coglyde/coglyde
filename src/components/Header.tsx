@@ -1,8 +1,10 @@
 import Image from "next/image";
 import Link from "next/link";
+import { AuthMenu } from "./header/AuthMenu";
 import { ServicesDropdown } from "./header/ServicesDropdown";
 
 const navLinks = [
+  { label: "Pricing", href: "/pricing" },
   { label: "Blog", href: "#blog" },
   { label: "Contact", href: "#contact" },
 ];
@@ -10,41 +12,44 @@ const navLinks = [
 export function Header() {
   return (
     <header className="pointer-events-none fixed inset-x-0 top-6 z-50 flex justify-center px-4">
-      <div className="pointer-events-auto flex w-full max-w-5xl items-center justify-between rounded-full border border-white/10 bg-black/40 px-5 py-2.5 backdrop-blur-md">
-        <Link href="/" className="flex items-center" aria-label="Coglyde home">
+      <div className="pointer-events-auto flex w-full max-w-7xl items-center justify-between rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.08] to-white/[0.02] px-8 py-3.5 backdrop-blur-xl shadow-2xl">
+        <Link href="/" className="flex shrink-0 items-center" aria-label="Coglyde home">
           <Image
             src="/coglyde-logo.png"
             alt="Coglyde"
             width={430}
             height={125}
             priority
-            className="h-8 w-auto"
+            className="h-7 w-auto"
           />
         </Link>
-        <nav className="hidden items-center gap-9 text-[0.95rem] font-normal tracking-[0.04em] text-white/70 md:flex">
+        <nav className="hidden items-center gap-12 text-[0.92rem] font-light tracking-[0.03em] text-white/70 md:flex">
           <ServicesDropdown />
           {navLinks.map((link) => (
             <a
               key={link.label}
               href={link.href}
-              className="transition-colors hover:text-white"
+              className="transition-all duration-200 hover:text-white hover:tracking-[0.05em]"
             >
               {link.label}
             </a>
           ))}
         </nav>
-        <a
-          href="#strategy-call"
-          className="group inline-flex items-center gap-2 rounded-full bg-white/95 px-4 py-2 text-[0.88rem] font-medium text-black transition hover:bg-white"
-        >
-          Strategy Call
-          <span
-            aria-hidden
-            className="transition-transform group-hover:translate-x-0.5"
+        <div className="flex items-center gap-6">
+          <AuthMenu />
+          <a
+            href="#strategy-call"
+            className="group relative inline-flex items-center gap-2.5 rounded-full bg-white/95 px-6 py-2.5 text-[0.87rem] font-medium text-black shadow-lg transition duration-200 hover:bg-white hover:shadow-xl"
           >
-            →
-          </span>
-        </a>
+            Strategy Call
+            <span
+              aria-hidden
+              className="transition-transform duration-200 group-hover:translate-x-1"
+            >
+              →
+            </span>
+          </a>
+        </div>
       </div>
     </header>
   );

@@ -41,8 +41,8 @@ const SERVICES: Service[] = [
   {
     title: "Search Engine Optimization",
     tagline: "Become visible",
-    href: "#",
-    available: false,
+    href: "/services/seo",
+    available: true,
     icon: (
       <svg viewBox="0 0 24 24" fill="none" aria-hidden>
         <circle

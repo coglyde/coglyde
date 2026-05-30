@@ -19,6 +19,10 @@ const range = (p: number, start: number, end: number) =>
 const SHIP_MAX_SCALE = 9;
 // Hero starts as a far-away point at the ship's vanishing center, then grows to 1.
 const HERO_START_SCALE = 0.06;
+// Fraction of the pinned scroll spent flying in. Once the fly-in finishes the
+// hero holds, fully settled and centered, for the remaining scroll before the
+// pin releases — so it lingers a beat instead of scrolling away immediately.
+const SETTLE = 0.7;
 
 export function CockpitIntro({ children }: CockpitIntroProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -40,21 +44,24 @@ export function CockpitIntro({ children }: CockpitIntroProps) {
 
       // p maps 1:1 to scroll position across the pinned region.
       const p = clamp(-rect.top / scrollDistance, 0, 1);
+      // a is the fly-in progress: it reaches 1 at p = SETTLE, then stays at 1
+      // so the hero holds, settled and centered, for the rest of the pin before
+      // it scrolls away.
+      const a = clamp(p / SETTLE, 0, 1);
 
       // Ship: geometric (exponential) scale so each scroll tick changes the
       // apparent zoom by the same ratio — the motion reads as a steady,
       // wheel-paced fly-through instead of a fast lurch.
-      const shipScale = SHIP_MAX_SCALE ** range(p, 0, 0.82);
-      const shipOpacity = 1 - range(p, 0.55, 0.78);
+      const shipScale = SHIP_MAX_SCALE ** range(a, 0, 0.82);
+      const shipOpacity = 1 - range(a, 0.55, 0.78);
       ship.style.transform = `scale(${shipScale})`;
       ship.style.opacity = String(shipOpacity);
 
       // Hero: emerges from the vanishing point as the ship passes and lands
-      // fully centered exactly at p = 1, so the pin releases the moment it
-      // settles — no dead scroll while it sits in the middle.
+      // fully centered at p = SETTLE, then holds until the pin releases.
       const heroScale =
-        HERO_START_SCALE * (1 / HERO_START_SCALE) ** range(p, 0.5, 1);
-      const heroOpacity = range(p, 0.6, 0.92);
+        HERO_START_SCALE * (1 / HERO_START_SCALE) ** range(a, 0.5, 1);
+      const heroOpacity = range(a, 0.6, 0.92);
       hero.style.transform = `scale(${heroScale})`;
       hero.style.opacity = String(heroOpacity);
     };
@@ -80,7 +87,7 @@ export function CockpitIntro({ children }: CockpitIntroProps) {
   return (
     <div
       ref={containerRef}
-      className="h-[200vh]"
+      className="h-[240vh]"
       style={{ position: "relative", zIndex: 40, isolation: "isolate" }}
     >
       <div
@@ -105,7 +112,10 @@ export function CockpitIntro({ children }: CockpitIntroProps) {
             fill
             priority
             sizes="100vw"
-            className="object-cover"
+            // Vertically place the porthole at the viewport center so the
+            // centered zoom flies straight into it (tune the 62% if it sits
+            // slightly high/low).
+            className="object-cover object-[50%_62%]"
           />
         </div>
 
