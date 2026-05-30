@@ -27,7 +27,7 @@ export function AuthMenu() {
     return (
       <div
         aria-hidden
-        className="flex h-9 items-center gap-2.5 rounded-full border border-white/10 bg-white/[0.04] px-3.5 py-2"
+        className="flex h-9 w-[120px] items-center gap-2.5 rounded-full border border-white/10 bg-white/[0.04] px-3.5 py-2"
       >
         <div className="h-6 w-6 animate-pulse rounded-full bg-white/10" />
         <div className="hidden h-3 w-10 animate-pulse rounded bg-white/10 sm:block" />
@@ -52,7 +52,7 @@ export function AuthMenu() {
     <div ref={dropdownRef} className="relative">
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-2.5 rounded-full border border-white/15 bg-white/[0.06] px-3.5 py-2 transition-all duration-200 hover:bg-white/[0.12] hover:border-white/20"
+        className="flex h-9 min-w-[120px] items-center gap-2.5 rounded-full border border-white/15 bg-white/[0.06] px-3.5 py-2 transition-all duration-200 hover:bg-white/[0.12] hover:border-white/20"
       >
         <div className="flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-white/30 to-white/10 text-[0.75rem] font-semibold text-white">
           {initials}
