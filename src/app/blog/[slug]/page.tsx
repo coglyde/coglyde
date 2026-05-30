@@ -24,7 +24,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
       title: post.title,
       description: post.description,
       type: "article",
-      images: post.image ? [post.image] : undefined,
+      images: ["/api/og"],
     },
   };
 }
@@ -70,17 +70,6 @@ export default async function BlogPostPage({ params }: Params) {
           <h1 className="mt-3 text-balance text-4xl font-medium leading-[1.1] tracking-tight text-white sm:text-5xl">
             {post.title}
           </h1>
-
-          {post.image ? (
-            <div className="mt-10 aspect-[16/9] w-full overflow-hidden rounded-2xl border border-white/[0.08] bg-black">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={post.image}
-                alt={post.title}
-                className="h-full w-full object-cover"
-              />
-            </div>
-          ) : null}
 
           <div
             className="prose prose-invert mt-10 max-w-none prose-headings:font-medium prose-headings:tracking-tight prose-a:text-violet-300 prose-a:no-underline hover:prose-a:underline prose-img:rounded-2xl"

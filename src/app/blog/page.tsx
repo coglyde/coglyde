@@ -57,18 +57,8 @@ export default function BlogIndexPage() {
                 <Link
                   key={post.slug}
                   href={`/blog/${post.slug}`}
-                  className="group flex h-full flex-col overflow-hidden rounded-3xl border border-white/[0.08] bg-white/[0.02] backdrop-blur-sm transition-colors hover:border-white/20"
+                  className="group flex h-full flex-col rounded-3xl border border-white/[0.08] bg-white/[0.02] backdrop-blur-sm transition-colors hover:border-white/20"
                 >
-                  {post.image ? (
-                    <div className="aspect-[16/10] w-full overflow-hidden bg-black">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={post.image}
-                        alt=""
-                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
-                      />
-                    </div>
-                  ) : null}
                   <div className="flex flex-1 flex-col p-7 sm:p-8">
                     {date ? (
                       <p className="text-xs font-medium uppercase tracking-[0.14em] text-white/40">
