@@ -34,21 +34,21 @@ export function Hero() {
             width={500}
             height={500}
             priority
-            className="relative h-28 w-28 sm:h-32 sm:w-32 md:h-36 md:w-36"
+            className="relative h-20 w-20 sm:h-28 sm:w-28 md:h-36 md:w-36"
           />
         </div>
 
-        <h1 className="mt-8 max-w-[60rem] text-balance text-[3rem] font-medium leading-[1.05] tracking-tight text-white sm:text-[3.6rem] md:text-[4.6rem]">
+        <h1 className="mt-6 max-w-[60rem] text-balance text-[2.05rem] font-medium leading-[1.08] tracking-tight text-white sm:mt-8 sm:text-[3.2rem] sm:leading-[1.05] md:text-[4.6rem]">
           Glide over your competition with web design &amp; SEO
         </h1>
 
-        <p className="mt-6 max-w-[44rem] text-pretty text-base leading-[1.55] text-white/65 sm:text-lg">
+        <p className="mt-4 max-w-[44rem] text-pretty text-sm leading-[1.5] text-white/65 sm:mt-6 sm:text-lg sm:leading-[1.55]">
           Future-proof your business and get ahead of the competition with AI
           powered digital marketing solutions. From website design to advanced
           automations, sales funnels and creatives, we are your one stop shop.
         </p>
 
-        <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
+        <div className="mt-7 flex flex-wrap items-center justify-center gap-3 sm:mt-10">
           <a
             href="#contact"
             className="rounded-2xl border border-white/15 bg-black/60 px-7 py-3.5 text-sm font-medium text-white backdrop-blur-sm transition hover:border-white/25 hover:bg-black/70"
@@ -66,7 +66,7 @@ export function Hero() {
           </a>
         </div>
 
-        <div className="mt-12 flex flex-wrap items-center justify-center gap-x-7 gap-y-3 text-sm text-white/70">
+        <div className="mt-8 flex flex-wrap items-center justify-center gap-x-5 gap-y-2.5 text-xs text-white/70 sm:mt-12 sm:gap-x-7 sm:gap-y-3 sm:text-sm">
           {features.map((feature) => (
             <span key={feature} className="flex items-center gap-2">
               <svg

@@ -7,7 +7,7 @@ export function WebsiteDesignHero() {
       <div className="mx-auto flex max-w-7xl flex-col items-center text-center">
         {/* Matches the live `.hero-heading.is-website_design`: 4rem / 500 /
             max-width 60rem, scaling down per the live mobile overrides. */}
-        <h1 className="max-w-[60rem] text-balance text-[3rem] font-medium leading-[1.1] tracking-tight text-white sm:text-[3.2rem] md:text-[3.6rem] lg:text-[4rem]">
+        <h1 className="max-w-[60rem] text-balance text-[2.1rem] font-medium leading-[1.12] tracking-tight text-white sm:text-[3.2rem] sm:leading-[1.1] md:text-[3.6rem] lg:text-[4rem]">
           Website Design that Stands Out
         </h1>
 

@@ -15,6 +15,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL || "https://coglyde.com",
+  ),
   title: "Coglyde",
   description: "A web design and digital marketing studio building sites that glide past the competition.",
   icons: {

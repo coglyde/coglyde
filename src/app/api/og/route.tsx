@@ -2,175 +2,71 @@ import { ImageResponse } from "@vercel/og";
 
 export const runtime = "edge";
 
-export async function GET() {
+// Branded Open Graph image: the Coglyde logo on a black backdrop with a soft
+// violet glow, matching the site's look. The logo is fetched from the same
+// origin that serves this route.
+export async function GET(request: Request) {
+  const { origin } = new URL(request.url);
+
   return new ImageResponse(
     (
       <div
         style={{
-          width: "100%",
           height: "100%",
+          width: "100%",
           display: "flex",
           flexDirection: "column",
-          justifyContent: "space-between",
-          padding: "60px 80px",
-          background: "linear-gradient(135deg, #0a0e27 0%, #0f1629 50%, #0a0a1f 100%)",
-          fontFamily: "system-ui, -apple-system, 'Segoe UI', sans-serif",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "#050506",
           position: "relative",
-          overflow: "hidden",
         }}
       >
-        {/* Background orbital accent */}
+        {/* soft violet glow */}
         <div
           style={{
             position: "absolute",
-            top: "-150px",
-            right: "-100px",
-            width: "400px",
-            height: "400px",
-            borderRadius: "50%",
-            border: "1px solid rgba(16, 185, 129, 0.15)",
+            top: "-160px",
+            width: "760px",
+            height: "760px",
+            borderRadius: "9999px",
+            background:
+              "radial-gradient(circle, rgba(120,124,255,0.40) 0%, rgba(120,124,255,0) 70%)",
           }}
         />
-
-        {/* Top right orbit */}
+        {/* subtle starfield-ish bottom fade */}
         <div
           style={{
             position: "absolute",
-            top: "-50px",
-            right: "60px",
-            width: "150px",
-            height: "150px",
-            borderRadius: "50%",
-            border: "1px solid rgba(59, 130, 246, 0.1)",
+            inset: 0,
+            background:
+              "radial-gradient(120% 80% at 50% 120%, rgba(99,102,241,0.18) 0%, rgba(0,0,0,0) 60%)",
           }}
         />
 
-        {/* Corner accent gradient */}
-        <div
-          style={{
-            position: "absolute",
-            bottom: 0,
-            right: 0,
-            width: "200px",
-            height: "200px",
-            background: "radial-gradient(circle at top-left, rgba(16, 185, 129, 0.1) 0%, transparent 70%)",
-          }}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={`${origin}/coglyde-logo.png`}
+          width={640}
+          height={186}
+          alt="Coglyde"
+          style={{ position: "relative" }}
         />
 
-        {/* Header with status dot */}
         <div
           style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "12px",
             position: "relative",
-            zIndex: 1,
-          }}
-        >
-          <div
-            style={{
-              width: "8px",
-              height: "8px",
-              borderRadius: "50%",
-              background: "#10b981",
-              boxShadow: "0 0 12px rgba(16, 185, 129, 0.6)",
-            }}
-          />
-          <span
-            style={{
-              fontSize: "11px",
-              fontWeight: 600,
-              letterSpacing: "0.15em",
-              textTransform: "uppercase",
-              color: "rgba(255, 255, 255, 0.5)",
-            }}
-          >
-            Web Design & Digital Marketing
-          </span>
-        </div>
-
-        {/* Content */}
-        <div
-          style={{
             display: "flex",
-            flexDirection: "column",
-            maxWidth: "900px",
-            position: "relative",
-            zIndex: 1,
-          }}
-        >
-          <h1
-            style={{
-              fontSize: "72px",
-              fontWeight: 900,
-              letterSpacing: "-1px",
-              background: "linear-gradient(135deg, #ffffff 0%, rgba(255, 255, 255, 0.95) 100%)",
-              backgroundClip: "text",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-              color: "#ffffff",
-              margin: 0,
-              marginBottom: "24px",
-              textTransform: "uppercase",
-            }}
-          >
-            COGLYDE
-          </h1>
-
-          <p
-            style={{
-              fontSize: "32px",
-              fontWeight: 300,
-              lineHeight: 1.4,
-              color: "rgba(255, 255, 255, 0.85)",
-              letterSpacing: "-0.3px",
-              margin: 0,
-              marginBottom: "32px",
-              maxWidth: "800px",
-            }}
-          >
-            Building sites that glide past the competition
-          </p>
-
-          <div
-            style={{
-              width: "120px",
-              height: "3px",
-              background: "linear-gradient(90deg, #10b981 0%, rgba(16, 185, 129, 0) 100%)",
-              borderRadius: "2px",
-            }}
-          />
-        </div>
-
-        {/* Footer */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            fontSize: "13px",
-            color: "rgba(255, 255, 255, 0.5)",
+            marginTop: "40px",
+            fontSize: "32px",
             letterSpacing: "0.02em",
-            position: "relative",
-            zIndex: 1,
+            color: "rgba(255,255,255,0.62)",
           }}
         >
-          <span>Vancouver-based design studio</span>
-          <span
-            style={{
-              fontFamily: "Monaco, Courier New, monospace",
-              fontSize: "12px",
-              color: "rgba(16, 185, 129, 0.8)",
-            }}
-          >
-            coglyde.com
-          </span>
+          Web design &amp; digital marketing studio
         </div>
       </div>
     ),
-    {
-      width: 1200,
-      height: 630,
-    }
+    { width: 1200, height: 630 },
   );
 }

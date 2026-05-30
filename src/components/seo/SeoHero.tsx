@@ -8,7 +8,7 @@ export function SeoHero() {
         <p className="text-xs font-medium uppercase tracking-[0.22em] text-violet-400">
           SEO &amp; GEO
         </p>
-        <h1 className="mt-4 max-w-[60rem] text-balance text-[3rem] font-medium leading-[1.1] tracking-tight text-white sm:text-[3.2rem] md:text-[3.6rem] lg:text-[4rem]">
+        <h1 className="mt-4 max-w-[60rem] text-balance text-[2.1rem] font-medium leading-[1.12] tracking-tight text-white sm:text-[3.2rem] sm:leading-[1.1] md:text-[3.6rem] lg:text-[4rem]">
           SEO that ranks you on Google and gets you cited in AI answers
         </h1>
         <p className="mt-5 max-w-[48rem] text-pretty text-[0.95rem] leading-[1.5] text-white/60 sm:text-base">
