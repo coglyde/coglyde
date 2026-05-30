@@ -1,9 +1,10 @@
+import { BOOKING_URL } from "@/lib/links";
 import { GlowingButton } from "../ui/GlowingButton";
 
 export function SeoHero() {
   return (
     <section className="relative z-10 px-6 pt-32 pb-16 sm:px-10 sm:pt-40 sm:pb-24">
-      <div className="mx-auto flex max-w-[90rem] flex-col items-center text-center">
+      <div className="mx-auto flex max-w-7xl flex-col items-center text-center">
         <p className="text-xs font-medium uppercase tracking-[0.22em] text-violet-400">
           SEO &amp; GEO
         </p>
@@ -16,7 +17,12 @@ export function SeoHero() {
           Overviews &mdash; driving qualified, compounding traffic that
           doesn&rsquo;t switch off the moment you stop paying.
         </p>
-        <GlowingButton href="#strategy-call" className="mt-10">
+        <GlowingButton
+          href={BOOKING_URL}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-10"
+        >
           Book a strategy call
         </GlowingButton>
       </div>

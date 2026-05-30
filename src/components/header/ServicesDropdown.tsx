@@ -140,7 +140,7 @@ export function ServicesDropdown() {
     <div className="group relative">
       <button
         type="button"
-        className="inline-flex items-center gap-1.5 text-[0.95rem] font-normal tracking-[0.04em] text-white/70 transition-colors hover:text-white focus:outline-none focus-visible:text-white"
+        className="inline-flex items-center gap-1.5 text-[0.84rem] font-light tracking-[0.03em] text-white/70 transition-all duration-200 hover:text-white hover:tracking-[0.05em] focus:outline-none focus-visible:text-white"
         aria-haspopup="menu"
         aria-expanded="false"
       >

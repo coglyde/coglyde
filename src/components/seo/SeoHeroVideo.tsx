@@ -21,7 +21,7 @@ export function SeoHeroVideo() {
       <motion.div
         ref={ref}
         style={{ scale }}
-        className="relative mx-auto aspect-video w-full max-w-[80rem] overflow-hidden rounded-[1.75rem] border border-white/10 shadow-[0_40px_120px_-40px_rgba(99,102,241,0.45)]"
+        className="relative mx-auto aspect-video w-full max-w-7xl overflow-hidden rounded-[1.75rem] border border-white/10 shadow-[0_40px_120px_-40px_rgba(99,102,241,0.45)]"
       >
         <video
           src={VIDEO_URL}

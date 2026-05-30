@@ -13,32 +13,30 @@ const navLinks = [
 export function Header() {
   return (
     <header className="pointer-events-none fixed inset-x-0 top-6 z-50 flex justify-center px-6 sm:px-10">
-      <div className="pointer-events-auto flex w-full max-w-7xl items-center justify-between rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.08] to-white/[0.02] px-8 py-3.5 backdrop-blur-xl shadow-2xl">
-        <div className="flex items-center gap-10">
-          <Link href="/" className="flex shrink-0 items-center" aria-label="Coglyde home">
-            <Image
-              src="/coglyde-logo.png"
-              alt="Coglyde"
-              width={430}
-              height={125}
-              priority
-              className="h-8 w-auto"
-            />
-          </Link>
-          <nav className="hidden items-center gap-8 text-[0.84rem] font-light tracking-[0.03em] text-white/70 lg:flex">
-            <ServicesDropdown />
-            {navLinks.map((link) => (
-              <a
-                key={link.label}
-                href={link.href}
-                className="transition-all duration-200 hover:text-white hover:tracking-[0.05em]"
-              >
-                {link.label}
-              </a>
-            ))}
-          </nav>
-        </div>
-        <div className="flex items-center gap-6">
+      <div className="pointer-events-auto grid w-full max-w-7xl grid-cols-[1fr_auto_1fr] items-center rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.08] to-white/[0.02] px-8 py-3.5 backdrop-blur-xl shadow-2xl">
+        <Link href="/" className="flex shrink-0 items-center justify-self-start" aria-label="Coglyde home">
+          <Image
+            src="/coglyde-logo.png"
+            alt="Coglyde"
+            width={430}
+            height={125}
+            priority
+            className="h-8 w-auto"
+          />
+        </Link>
+        <nav className="hidden items-center gap-8 justify-self-center text-[0.84rem] font-light tracking-[0.03em] text-white/70 lg:flex">
+          <ServicesDropdown />
+          {navLinks.map((link) => (
+            <a
+              key={link.label}
+              href={link.href}
+              className="transition-all duration-200 hover:text-white hover:tracking-[0.05em]"
+            >
+              {link.label}
+            </a>
+          ))}
+        </nav>
+        <div className="flex items-center gap-6 justify-self-end">
           <AuthMenu />
           <a
             href={BOOKING_URL}

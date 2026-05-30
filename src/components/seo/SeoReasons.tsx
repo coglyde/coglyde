@@ -24,7 +24,7 @@ const reasons = [
 export function SeoReasons() {
   return (
     <section className="relative z-10 px-6 pb-16 sm:px-10 sm:pb-24">
-      <div className="mx-auto max-w-[90rem]">
+      <div className="mx-auto max-w-7xl">
         <div className="grid gap-8 lg:grid-cols-2 lg:gap-16">
           <h2 className="text-balance text-4xl font-medium leading-[1.05] tracking-tight text-white sm:text-5xl">
             Why would you need SEO?

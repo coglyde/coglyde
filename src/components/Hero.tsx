@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { BOOKING_URL } from "@/lib/links";
 import { CockpitIntro } from "./CockpitIntro";
 import { Header } from "./Header";
 import { StarfieldBackground } from "./StarfieldBackground";
@@ -56,7 +57,9 @@ export function Hero() {
             Contact us
           </a>
           <a
-            href="#strategy-call"
+            href={BOOKING_URL}
+            target="_blank"
+            rel="noreferrer"
             className="rounded-2xl bg-white/15 px-7 py-3.5 text-sm font-medium text-white backdrop-blur-sm transition hover:bg-white/25"
           >
             Glyde

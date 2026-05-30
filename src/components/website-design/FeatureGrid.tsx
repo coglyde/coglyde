@@ -39,7 +39,7 @@ const features = [
 export function FeatureGrid() {
   return (
     <section className="relative z-10 px-6 pb-16 sm:px-10 sm:pb-24">
-      <div className="mx-auto grid max-w-[90rem] grid-cols-1 gap-8 lg:grid-cols-3">
+      <div className="mx-auto grid max-w-7xl grid-cols-1 gap-8 lg:grid-cols-3">
         {features.map((feature) => (
           <div
             key={feature.title}

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BOOKING_URL } from "@/lib/links";
 import { GlowingButton } from "../ui/GlowingButton";
 
 export function SeoCta() {
@@ -17,7 +18,7 @@ export function SeoCta() {
           and how we&rsquo;d win them back.
         </p>
         <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
-          <GlowingButton href="#strategy-call">
+          <GlowingButton href={BOOKING_URL} target="_blank" rel="noreferrer">
             Book a strategy call
           </GlowingButton>
           <Link

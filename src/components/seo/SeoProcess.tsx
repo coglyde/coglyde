@@ -36,7 +36,7 @@ const steps = [
 export function SeoProcess() {
   return (
     <section className="relative z-10 px-6 pb-20 sm:px-10 sm:pb-28">
-      <div className="mx-auto max-w-[90rem]">
+      <div className="mx-auto max-w-7xl">
         <header className="mx-auto max-w-2xl text-center">
           <p className="text-xs font-medium uppercase tracking-[0.22em] text-violet-400">
             Process

@@ -25,7 +25,7 @@ export function PricingDashboard() {
   const Panel = PANELS[tab.key];
 
   return (
-    <div className="mx-auto flex max-w-[82rem] flex-col gap-10 lg:flex-row lg:gap-14">
+    <div className="mx-auto flex max-w-7xl flex-col gap-10 lg:flex-row lg:gap-14">
       <PricingSidebar tabs={pricingTabs} active={tab.key} onSelect={setActiveKey} />
 
       <div className="min-w-0 flex-1">

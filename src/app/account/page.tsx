@@ -23,7 +23,7 @@ export default async function AccountPage() {
     <>
       <PageAmbientBackground />
       <Header />
-      <main className="relative z-10 mx-auto min-h-screen max-w-5xl px-6 pt-32 pb-24 sm:pt-40">
+      <main className="relative z-10 mx-auto min-h-screen max-w-7xl px-6 pt-32 pb-24 sm:pt-40">
         <header className="mb-12">
           <p className="text-xs font-medium uppercase tracking-[0.22em] text-emerald-400">
             Account Dashboard

@@ -1,5 +1,5 @@
-import Link from "next/link";
 import type { BuildTier } from "@/lib/pricing";
+import { BOOKING_URL } from "@/lib/links";
 import { FeatureItem } from "./FeatureItem";
 import { PopularBadge } from "./PopularBadge";
 
@@ -33,12 +33,14 @@ export function BuildTierCard({ tier }: { tier: BuildTier }) {
         ))}
       </ul>
 
-      <Link
-        href="/#strategy-call"
+      <a
+        href={BOOKING_URL}
+        target="_blank"
+        rel="noreferrer"
         className="mt-6 block w-full rounded-2xl border border-white/15 bg-white/[0.03] px-5 py-3 text-center text-sm font-medium text-white transition-colors hover:border-white/30 hover:bg-white/[0.06]"
       >
         Book a strategy call
-      </Link>
+      </a>
     </article>
   );
 }

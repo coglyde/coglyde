@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 // thin ring). Respects prefers-reduced-motion.
 export function PricingWindow({ children }: { children: ReactNode }) {
   return (
-    <div className="relative mx-auto max-w-[90rem]">
+    <div className="relative mx-auto max-w-7xl">
       {/* soft ambient glow behind the panel */}
       <div
         aria-hidden
