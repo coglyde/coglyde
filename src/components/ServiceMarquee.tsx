@@ -21,7 +21,7 @@ export function ServiceMarquee() {
           "linear-gradient(to right, transparent, #000 14%, #000 86%, transparent)",
       }}
     >
-      <div className="flex w-max animate-[marquee_34s_linear_infinite] items-center motion-reduce:animate-none">
+      <div className="marquee-track flex w-max items-center">
         {[0, 1].map((copy) => (
           <ul
             key={copy}

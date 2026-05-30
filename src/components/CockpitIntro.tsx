@@ -125,7 +125,7 @@ export function CockpitIntro({ children }: CockpitIntroProps) {
         >
           <div
             ref={heroRef}
-            className="flex max-w-[64rem] flex-col items-center px-6 text-center"
+            className="flex w-full max-w-[64rem] flex-col items-center px-6 text-center"
             style={{
               transform: `scale(${HERO_START_SCALE})`,
               opacity: 0,
