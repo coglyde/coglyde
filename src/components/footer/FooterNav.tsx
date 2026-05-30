@@ -7,15 +7,15 @@ const columns: { title: string; links: LinkItem[] }[] = [
     title: "Services",
     links: [
       { label: "Web Design", href: "/services/website-design" },
-      { label: "SEO", href: "#seo" },
-      { label: "Automations", href: "#automations" },
+      { label: "SEO & GEO", href: "/services/seo" },
+      { label: "Pricing", href: "/pricing" },
     ],
   },
   {
     title: "Company",
     links: [
+      { label: "Blog", href: "/blog" },
       { label: "About", href: "#about" },
-      { label: "Blog", href: "#blog" },
       { label: "Contact", href: "#contact" },
     ],
   },
@@ -32,7 +32,7 @@ const columns: { title: string; links: LinkItem[] }[] = [
 
 export function FooterNav() {
   return (
-    <div className="grid gap-12 lg:grid-cols-[1.4fr_1fr_1fr_1fr] lg:gap-16">
+    <div className="grid gap-10 lg:grid-cols-[1.4fr_1fr_1fr_1fr] lg:gap-16">
       <div className="flex flex-col gap-6">
         <Image
           src="/coglyde-logo.png"
@@ -51,8 +51,9 @@ export function FooterNav() {
         </div>
       </div>
 
-      {columns.map((column) => (
-        <div key={column.title}>
+      <div className="grid grid-cols-2 gap-8 sm:grid-cols-3 lg:contents">
+        {columns.map((column) => (
+          <div key={column.title}>
           <h3 className="text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-white/40">
             {column.title}
           </h3>
@@ -88,6 +89,7 @@ export function FooterNav() {
           </ul>
         </div>
       ))}
+      </div>
     </div>
   );
 }

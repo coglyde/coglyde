@@ -28,6 +28,7 @@ export function CockpitIntro({ children }: CockpitIntroProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const heroRef = useRef<HTMLDivElement>(null);
   const shipRef = useRef<HTMLDivElement>(null);
+  const scrollHintRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let ticking = false;
@@ -64,6 +65,10 @@ export function CockpitIntro({ children }: CockpitIntroProps) {
       const heroOpacity = range(a, 0.6, 0.92);
       hero.style.transform = `scale(${heroScale})`;
       hero.style.opacity = String(heroOpacity);
+
+      // Scroll hint: shown at the very top, fades out the moment you scroll.
+      const hint = scrollHintRef.current;
+      if (hint) hint.style.opacity = String(1 - range(p, 0, 0.08));
     };
 
     const onScroll = () => {
@@ -134,6 +139,30 @@ export function CockpitIntro({ children }: CockpitIntroProps) {
           >
             {children}
           </div>
+        </div>
+
+        <div
+          ref={scrollHintRef}
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 bottom-7 z-20 flex flex-col items-center gap-2"
+          style={{ willChange: "opacity" }}
+        >
+          <span className="text-[0.6rem] uppercase tracking-[0.45em] text-white/45">
+            Scroll
+          </span>
+          <span className="flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-white/[0.04] text-white/70 shadow-[0_0_24px_-6px_rgba(120,124,255,0.65)] backdrop-blur-sm">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-4 w-4 animate-bounce"
+            >
+              <path d="m6 9 6 6 6-6" />
+            </svg>
+          </span>
         </div>
       </div>
     </div>
