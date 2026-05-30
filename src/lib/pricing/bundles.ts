@@ -11,7 +11,7 @@ export const bundles: SubscriptionPlan[] = [
     monthly: 649,
     features: [
       "Hosting + Maintenance included",
-      "Foundation SEO: 1 article/mo, on-page and technical",
+      "Foundation SEO: 4 articles/mo, on-page and technical",
       "AI search (AEO) foundation",
       "Missed Call Text-Back automation",
       "Monthly reporting dashboard",
@@ -25,7 +25,7 @@ export const bundles: SubscriptionPlan[] = [
     popular: true,
     features: [
       "Everything in Launch",
-      "Growth SEO: 3 articles/mo across 50 keywords",
+      "Growth SEO: 8 articles/mo across 50 keywords",
       "Monthly competitor analysis and link outreach",
       "Two automations of your choice",
       "Quarterly strategy call",
@@ -38,7 +38,7 @@ export const bundles: SubscriptionPlan[] = [
     monthly: 2490,
     features: [
       "Everything in Grow",
-      "Authority SEO: 6 articles/mo across 150 keywords",
+      "Authority SEO: 12 articles/mo across 150 keywords",
       "Full multi-engine AEO and digital PR",
       "Unlimited automations from our menu",
       "Dedicated account lead, bi-weekly reporting",

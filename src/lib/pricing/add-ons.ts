@@ -23,7 +23,7 @@ export const addOns: AddOn[] = [
   {
     key: "addon-blog",
     name: "Blog Automation",
-    price: 497,
+    price: 249,
     blurb:
       "4 to 8 SEO blog posts drafted and published to your site each month.",
   },
@@ -33,20 +33,6 @@ export const addOns: AddOn[] = [
     price: 199,
     blurb:
       "Ongoing keyword discovery and rank tracking, delivered to a live dashboard.",
-  },
-  {
-    key: "addon-seo-audit",
-    name: "SEO Audit Automation",
-    price: 149,
-    blurb:
-      "Scheduled site audits that flag technical and on-page issues automatically.",
-  },
-  {
-    key: "addon-backlink-audit",
-    name: "Backlink Audit Automation",
-    price: 99,
-    blurb:
-      "Automated backlink monitoring so you catch toxic links and new mentions early.",
   },
   {
     key: "addon-carousel",

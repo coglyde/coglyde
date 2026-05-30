@@ -8,7 +8,7 @@ export const seoPlans: SubscriptionPlan[] = [
     blurb: "Hands-on SEO to establish your search and AI presence.",
     monthly: 499,
     features: [
-      "1 SEO article per month, written by our team",
+      "4 SEO articles per month, written by our team",
       "Monthly keyword research",
       "On-page optimization, up to 5 pages",
       "Technical SEO fixes and monitoring",
@@ -24,7 +24,7 @@ export const seoPlans: SubscriptionPlan[] = [
     monthly: 999,
     popular: true,
     features: [
-      "3 SEO articles per month, written by our team",
+      "8 SEO articles per month, written by our team",
       "Full competitor analysis, monthly",
       "Keyword research across 50 tracked terms",
       "On-page optimization, up to 15 pages",
@@ -40,7 +40,7 @@ export const seoPlans: SubscriptionPlan[] = [
     blurb: "Lead your category across Google and AI answers.",
     monthly: 1999,
     features: [
-      "6 long-form articles per month",
+      "12 long-form articles per month",
       "Deep competitor and market analysis",
       "150 tracked keywords",
       "Unlimited priority pages",

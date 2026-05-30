@@ -2,15 +2,8 @@ import Image from "next/image";
 import { BOOKING_URL } from "@/lib/links";
 import { CockpitIntro } from "./CockpitIntro";
 import { Header } from "./Header";
+import { ServiceMarquee } from "./ServiceMarquee";
 import { StarfieldBackground } from "./StarfieldBackground";
-
-const features = [
-  "Blog Automation",
-  "Unlimited UGC Adds",
-  "Automated Lead Generation",
-  "Premium 3D Models",
-  "Custom Web Design",
-];
 
 export function Hero() {
   return (
@@ -66,23 +59,8 @@ export function Hero() {
           </a>
         </div>
 
-        <div className="mt-8 flex flex-wrap items-center justify-center gap-x-5 gap-y-2.5 text-xs text-white/70 sm:mt-12 sm:gap-x-7 sm:gap-y-3 sm:text-sm">
-          {features.map((feature) => (
-            <span key={feature} className="flex items-center gap-2">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={2.5}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="h-4 w-4 text-white/50"
-              >
-                <polyline points="20 6 9 17 4 12" />
-              </svg>
-              {feature}
-            </span>
-          ))}
+        <div className="mt-10 w-full sm:mt-14">
+          <ServiceMarquee />
         </div>
       </CockpitIntro>
     </>
