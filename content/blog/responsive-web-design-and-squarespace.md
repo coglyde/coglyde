@@ -25,6 +25,8 @@ All templates are mobile-friendly, but some handle small screens more gracefully
 
 Set your maximum site width so the design holds up on large monitors without forcing huge images. On **Squarespace 7.0**, it's under Design → Site Styles; on **7.1**, under Design → Spacing. Keep it generous but reasonable, going ultra-wide means heavier images and slower loads, so balance width against performance.
 
+![Setting the maximum site width in Squarespace](https://cdn.prod.website-files.com/67342be12e0105773eb4c241/67e35e0b414148c0eb0b37c0_squarespace-max-width.png)
+
 ### Optimize every image
 
 Images are usually what slows a mobile site down, and speed is a ranking and [Core Web Vitals](https://web.dev/articles/vitals) factor. Compress them with a tool like [Squoosh](https://squoosh.app) before uploading, keep banner images around 2000px wide, and don't ship 4K images to phones. Fast-loading images keep both visitors and search engines happy.

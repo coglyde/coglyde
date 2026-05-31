@@ -33,6 +33,8 @@ You have two options:
 
 Either way, you'll need a **URL** for the JSON file, either host it yourself or grab the hosted URL from LottieFiles.
 
+![Copying a Lottie animation's URL from LottieFiles](https://cdn.prod.website-files.com/67342be12e0105773eb4c241/67d8d7d95c77f9b560786790_lottie-files-animation-url.png)
+
 ## Embed it on Squarespace
 
 ### Step 1: Add the Lottie player script
