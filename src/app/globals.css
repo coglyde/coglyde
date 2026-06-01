@@ -116,3 +116,27 @@ body {
     transform: translate(3px, 7px);
   }
 }
+
+/* Voice waveform bars on the automations showcase. Each bar sets its own
+   --eq-min via inline style and staggers with animation-delay. */
+@keyframes eq {
+  0%,
+  100% {
+    transform: scaleY(var(--eq-min, 0.3));
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+.eq-bar {
+  transform-origin: center;
+  animation: eq 1.1s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .eq-bar {
+    animation: none;
+    transform: scaleY(0.7);
+  }
+}

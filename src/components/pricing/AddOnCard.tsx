@@ -9,7 +9,9 @@ export function AddOnCard({ addOn }: { addOn: AddOn }) {
       </h3>
 
       <div className="mt-4 flex items-baseline gap-1.5">
-        <span className="text-sm text-white/50">from</span>
+        {addOn.variablePricing ? (
+          <span className="text-sm text-white/50">from</span>
+        ) : null}
         <span className="text-3xl font-semibold tracking-tight text-white">
           ${addOn.price.toLocaleString()}
         </span>

@@ -23,12 +23,24 @@ export type SubscriptionPlan = {
   tooltip?: string;
 };
 
+// Buckets the automation menu is grouped into on the service page. The pricing
+// page renders the add-ons flat and ignores this.
+export type AddOnGroup =
+  | "front-desk"
+  | "lead-retention"
+  | "content"
+  | "intelligence";
+
 export type AddOn = {
   key: string;
   name: string;
   price: number;
   blurb: string;
   note?: string;
+  group: AddOnGroup;
+  // When true the card shows "from $X" (usage- or tier-based). Flat-priced
+  // add-ons omit it so the price reads as exact.
+  variablePricing?: boolean;
 };
 
 export type BuildTier = {

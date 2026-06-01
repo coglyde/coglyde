@@ -1,98 +1,116 @@
 import type { AddOn } from "./types";
 
 // The automation menu. The full list is shown everywhere add-ons appear (every
-// pricing category, the website-design page, and the automations service page),
-// so there is no per-tab filtering. Add-ons are billed monthly only.
+// pricing category, the website-design page, and the automations service page).
+// Add-ons are billed monthly only. `group` buckets them on the service page;
+// `variablePricing` flips the card to "from $X" for usage- or tier-based ones.
 export const addOns: AddOn[] = [
-  // --- Lead capture & front desk ---
+  // --- Front desk: answer, qualify, book ---
   {
     key: "addon-missed-call",
     name: "Missed Call Text-Back",
     price: 149,
+    group: "front-desk",
+    variablePricing: true,
     blurb:
-      "Every missed call gets an instant, on-brand text so you never lose a lead.",
-    note: "Includes ~500 texts per month, overage billed at cost.",
+      "Fires an instant, on-brand text the moment a call goes unanswered, so a missed call never means a lost lead.",
+    note: "Includes ~500 texts per month; overage billed at cost.",
   },
   {
     key: "addon-ai-chatbot",
     name: "AI Chatbot",
     price: 249,
+    group: "front-desk",
     blurb:
-      "A chat widget trained on your business that answers questions, qualifies visitors, and books appointments around the clock.",
+      "Puts a chat widget trained on your business on your site to answer questions, qualify visitors, and book appointments around the clock.",
   },
   {
     key: "addon-ai-admin",
     name: "Virtual AI Admin",
     price: 497,
+    group: "front-desk",
+    variablePricing: true,
     blurb:
-      "An AI receptionist that answers, books, and handles intake over call and chat.",
-    note: "Core tier. Lite ($250) and high-volume ($600) options available.",
+      "Hands your phone and inbox to an AI receptionist that greets callers, answers FAQs, books jobs, and routes anything that needs a human.",
+    note: "Core tier. High-volume teams scale to a custom plan.",
   },
   {
     key: "addon-appointment-reminders",
     name: "Appointment Reminders",
     price: 99,
+    group: "front-desk",
     blurb:
-      "Automated confirmations and reminders over text and email that cut no-shows and fill your calendar.",
+      "Sends automated confirmations and reminders over text and email that cut no-shows and keep your calendar full.",
   },
+  // --- Lead generation & retention ---
   {
     key: "addon-lead-gen",
-    name: "Lead Generation Automation",
+    name: "Lead Generation",
     price: 399,
+    group: "lead-retention",
+    variablePricing: true,
     blurb:
-      "Sources qualified prospects and runs personalized outreach on autopilot to keep your pipeline full.",
-    note: "Targeting and volume scoped to your market on a quick setup call.",
+      "Finds qualified prospects and runs personalized outreach on autopilot to keep a steady flow of opportunities in your pipeline.",
+    note: "Targeting and volume scoped to your market on a setup call.",
   },
   {
     key: "addon-nurture",
     name: "Email & SMS Nurture",
     price: 199,
+    group: "lead-retention",
     blurb:
-      "Automated drip sequences that warm every new lead and bring past customers back, hands-free.",
+      "Runs automated drip sequences that warm every new lead and bring past customers back, completely hands-free.",
   },
   {
     key: "addon-reputation",
     name: "Reputation & Reviews",
     price: 149,
+    group: "lead-retention",
     blurb:
-      "Automatically requests reviews after every job, flags unhappy customers early, and drafts replies for you.",
+      "Requests a review after every job, catches unhappy customers before they post, and drafts your replies for you.",
   },
   // --- Content & social ---
   {
     key: "addon-blog",
     name: "Blog Automation",
     price: 249,
+    group: "content",
     blurb:
-      "4 to 8 SEO blog posts drafted and published to your site each month.",
+      "Researches, drafts, and publishes 4 to 8 SEO blog posts to your site every month in your brand voice.",
   },
   {
     key: "addon-carousel",
     name: "Carousel Generation",
     price: 149,
+    group: "content",
+    variablePricing: true,
     blurb:
-      "Scroll-stopping carousels and slideshows for TikTok and Instagram, designed and delivered.",
+      "Designs and delivers scroll-stopping carousels and slideshows for TikTok and Instagram on a steady schedule.",
     note: "Starts at 4 per month; scales with volume.",
   },
-  // --- SEO, research & reporting ---
+  // --- Research & reporting intelligence ---
   {
     key: "addon-keyword-research",
-    name: "Keyword Research Automation",
+    name: "Keyword Research",
     price: 199,
+    group: "intelligence",
     blurb:
-      "Ongoing keyword discovery and rank tracking, delivered to a live dashboard.",
+      "Tracks your rankings and surfaces the keywords and questions worth targeting next, delivered to a live SEO dashboard.",
   },
   {
     key: "addon-research",
     name: "Research Automation",
     price: 199,
+    group: "intelligence",
     blurb:
-      "Scheduled market, competitor, and topic research, compiled and delivered to you automatically.",
+      "Monitors your market, competitors, and trends on a schedule and compiles the findings into a brief you can act on.",
   },
   {
     key: "addon-reporting",
     name: "Ads & Analytics Reporting",
     price: 149,
+    group: "intelligence",
     blurb:
-      "Always-current dashboards and reports across your ads, analytics, and conversions.",
+      "Pulls your ads, analytics, and conversions into one always-current dashboard so you never assemble a report by hand again.",
   },
 ];
