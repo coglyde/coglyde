@@ -64,8 +64,8 @@ const SERVICES: Service[] = [
   {
     title: "Automations",
     tagline: "Grow smarter",
-    href: "#",
-    available: false,
+    href: "/services/automations",
+    available: true,
     icon: (
       <svg viewBox="0 0 24 24" fill="none" aria-hidden>
         <path

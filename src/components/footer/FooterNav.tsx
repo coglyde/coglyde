@@ -8,6 +8,7 @@ const columns: { title: string; links: LinkItem[] }[] = [
     links: [
       { label: "Web Design", href: "/services/website-design" },
       { label: "SEO & GEO", href: "/services/seo" },
+      { label: "Automations", href: "/services/automations" },
       { label: "Pricing", href: "/pricing" },
     ],
   },

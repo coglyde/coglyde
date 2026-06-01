@@ -8,6 +8,7 @@ import { BOOKING_URL } from "@/lib/links";
 const MENU = [
   { label: "Web design", href: "/services/website-design" },
   { label: "SEO & GEO", href: "/services/seo" },
+  { label: "Automations", href: "/services/automations" },
   { label: "Pricing", href: "/pricing" },
   { label: "Blog", href: "/blog" },
   { label: "Contact", href: "#contact" },
