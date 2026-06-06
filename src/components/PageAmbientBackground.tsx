@@ -14,12 +14,11 @@ export function PageAmbientBackground({
         className="absolute inset-0"
         style={{
           background: `
-            radial-gradient(ellipse 85vw 120vh at -10% 25%, rgba(70, 95, 195, 0.22), transparent 55%),
-            radial-gradient(ellipse 50vw 85vh at -4% 22%, rgba(115, 145, 235, 0.20), transparent 60%),
-            radial-gradient(ellipse 24vw 55vh at 0% 22%, rgba(180, 200, 255, 0.18), transparent 65%),
-            radial-gradient(ellipse 60vw 80vh at 108% 65%, rgba(135, 85, 215, 0.12), transparent 60%),
-            radial-gradient(ellipse 50vw 60vh at 95% 95%, rgba(40, 50, 110, 0.18), transparent 55%),
-            linear-gradient(180deg, rgba(15, 18, 40, 0.55) 0%, transparent 22%, transparent 78%, rgba(0, 0, 0, 0.6) 100%),
+            radial-gradient(ellipse 64vw 58vh at -2% -6%, rgba(70, 92, 196, 0.26), transparent 58%),
+            radial-gradient(ellipse 38vw 40vh at 4% -2%, rgba(214, 198, 226, 0.15), transparent 56%),
+            radial-gradient(ellipse 64vw 58vh at 102% -6%, rgba(78, 98, 206, 0.26), transparent 58%),
+            radial-gradient(ellipse 38vw 40vh at 96% -2%, rgba(150, 174, 246, 0.15), transparent 56%),
+            linear-gradient(180deg, rgba(10, 14, 34, 0.5) 0%, transparent 42%, transparent 100%),
             #000000
           `,
         }}

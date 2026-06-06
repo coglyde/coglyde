@@ -1,60 +1,89 @@
 "use client";
 
 import { useState } from "react";
-import { AccountSettings } from "./AccountSettings";
-import { SubscriptionSection } from "./SubscriptionSection";
-import { ContactSupport } from "./ContactSupport";
+import {
+  LayoutDashboard,
+  Sparkles,
+  BarChart3,
+  CreditCard,
+  Settings as SettingsIcon,
+  LifeBuoy,
+} from "lucide-react";
+import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { Separator } from "@/components/ui/separator";
+import { DashboardSidebar, type NavItem, type SectionId } from "./DashboardSidebar";
+import { OverviewSection } from "./OverviewSection";
 import { ContentRequests } from "./ContentRequests";
+import { AnalyticsPlaceholder } from "./AnalyticsPlaceholder";
+import { SubscriptionSection } from "./SubscriptionSection";
+import { AccountSettings } from "./AccountSettings";
+import { ContactSupport } from "./ContactSupport";
 import type { PlanSummary } from "@/lib/stripe-customer";
+import type { Capabilities } from "@/lib/capabilities";
 
-type Tab = "content" | "account" | "subscription" | "support";
-
-interface AccountDashboardProps {
+type Props = {
   subscriptions: PlanSummary[];
   hasSubscriptions: boolean;
-}
+  capabilities: Capabilities;
+  userName: string;
+  userEmail: string;
+};
 
-export function AccountDashboard({ subscriptions, hasSubscriptions }: AccountDashboardProps) {
-  const [activeTab, setActiveTab] = useState<Tab>("content");
+export function AccountDashboard({
+  subscriptions,
+  hasSubscriptions,
+  capabilities,
+  userName,
+  userEmail,
+}: Props) {
+  const allItems: NavItem[] = [
+    { id: "overview", label: "Overview", icon: LayoutDashboard },
+    { id: "content", label: "Site updates", icon: Sparkles },
+    { id: "analytics", label: "Analytics", icon: BarChart3 },
+    { id: "billing", label: "Billing", icon: CreditCard },
+    { id: "settings", label: "Settings", icon: SettingsIcon },
+    { id: "support", label: "Support", icon: LifeBuoy },
+  ];
+  // Gate Site updates on having a linked site repo.
+  const items = allItems.filter((item) => item.id !== "content" || capabilities.siteUpdates);
 
-  const tabs = [
-    { id: "content", label: "Site updates", icon: "✨" },
-    { id: "account", label: "Account Settings", icon: "⚙️" },
-    { id: "subscription", label: "Subscription & Billing", icon: "💳" },
-    { id: "support", label: "Support", icon: "📧" },
-  ] as const;
+  const [active, setActive] = useState<SectionId>(
+    capabilities.siteUpdates ? "content" : "overview",
+  );
+  const current = items.find((item) => item.id === active) ?? items[0];
 
   return (
-    <div className="space-y-8">
-      {/* Tab Navigation */}
-      <div className="border-b border-white/10">
-        <div className="flex gap-2 sm:gap-4 overflow-x-auto">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as Tab)}
-              className={`px-4 py-3 text-sm font-medium transition-all whitespace-nowrap border-b-2 ${
-                activeTab === tab.id
-                  ? "border-blue-500 text-white"
-                  : "border-transparent text-white/60 hover:text-white/80"
-              }`}
-            >
-              <span className="hidden sm:inline">{tab.icon} </span>
-              {tab.label}
-            </button>
-          ))}
+    <SidebarProvider>
+      <DashboardSidebar
+        items={items}
+        active={active}
+        onSelect={setActive}
+        userName={userName}
+        userEmail={userEmail}
+      />
+      <SidebarInset>
+        <header className="flex h-14 shrink-0 items-center gap-2 border-b border-border px-4">
+          <SidebarTrigger className="-ml-1" />
+          <Separator orientation="vertical" className="mr-1 h-4" />
+          <h1 className="text-sm font-medium text-foreground">{current.label}</h1>
+        </header>
+        <div className="flex-1 p-4 sm:p-6">
+          {active === "overview" && (
+            <OverviewSection
+              userName={userName}
+              capabilities={capabilities}
+              hasSubscriptions={hasSubscriptions}
+            />
+          )}
+          {active === "content" && <ContentRequests />}
+          {active === "analytics" && <AnalyticsPlaceholder />}
+          {active === "billing" && (
+            <SubscriptionSection subscriptions={subscriptions} hasSubscriptions={hasSubscriptions} />
+          )}
+          {active === "settings" && <AccountSettings />}
+          {active === "support" && <ContactSupport />}
         </div>
-      </div>
-
-      {/* Tab Content */}
-      <div className="min-h-[400px]">
-        {activeTab === "content" && <ContentRequests />}
-        {activeTab === "account" && <AccountSettings />}
-        {activeTab === "subscription" && (
-          <SubscriptionSection subscriptions={subscriptions} hasSubscriptions={hasSubscriptions} />
-        )}
-        {activeTab === "support" && <ContactSupport />}
-      </div>
-    </div>
+      </SidebarInset>
+    </SidebarProvider>
   );
 }

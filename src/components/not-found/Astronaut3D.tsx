@@ -4,11 +4,16 @@ import { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 
-// Renders a self-hosted glTF astronaut with three.js (already a project dep).
-// The camera fits the model's bounding sphere with a margin, so the whole
-// figure stays framed while it slowly roams the viewport and leans toward the
-// cursor. Orbit + cursor offsets share a budget kept inside the frame so it
-// never clips, on any aspect ratio.
+// Self-hosted glTF astronaut rendered with three.js (already a project dep).
+//
+// One calm behaviour: it always floats along a slow smooth path. The cursor
+// only softly pulls the centre of that path toward itself, so moving the mouse
+// gently guides the astronaut without ever changing its orientation or making it
+// dart. When the cursor is idle the centre eases back to the middle. Its gentle
+// tumble is constant and independent of the cursor.
+//
+// The camera fits the model's bounding sphere with a margin, and the path stays
+// inside that margin so the figure never clips on any aspect ratio.
 export function Astronaut3D({ className = "" }: { className?: string }) {
   const mountRef = useRef<HTMLDivElement>(null);
 
@@ -32,12 +37,21 @@ export function Astronaut3D({ className = "" }: { className?: string }) {
     scene.add(rim);
 
     const MARGIN = 2.5; // smaller = bigger astronaut
+    const WX = 0.1; // slow drift frequencies (different so the path loops)
+    const WY = 0.07;
+    const CENTER_EASE = 0.018; // how gently the float follows the cursor
+    const POS_EASE = 0.06; // smoothing of the figure onto its path
 
     let model: THREE.Object3D | null = null;
     let radius = 1;
-    let slackX = 0; // how far the figure can move on X and stay framed
+    let halfW = 1;
+    let halfH = 1;
+    let slackX = 0;
     let slackY = 0;
     const base = new THREE.Vector3();
+
+    const ampX = () => Math.min(slackX * 0.5, radius * 2.2);
+    const ampY = () => Math.min(slackY * 0.45, radius * 1.1);
 
     const frame = () => {
       const w = mount.clientWidth || 1;
@@ -53,17 +67,19 @@ export function Astronaut3D({ className = "" }: { className?: string }) {
       camera.far = dist + radius * 4;
       camera.updateProjectionMatrix();
 
-      const halfH = dist * Math.tan(vFov / 2);
-      const halfW = halfH * camera.aspect;
+      halfH = dist * Math.tan(vFov / 2);
+      halfW = halfH * camera.aspect;
       slackX = Math.max(0, halfW - radius);
       slackY = Math.max(0, halfH - radius);
     };
 
+    let centerX = 0;
+    let centerY = 0;
+    let centerReady = false;
+
     const loader = new GLTFLoader();
     loader.load("/models/astronaut.glb", (gltf) => {
       model = gltf.scene;
-      // Add first, then flush world matrices so the bounding box covers every
-      // node (legs included) before we measure and center it.
       scene.add(model);
       model.updateWorldMatrix(true, true);
       const box = new THREE.Box3().setFromObject(model, true);
@@ -72,43 +88,63 @@ export function Astronaut3D({ className = "" }: { className?: string }) {
       model.position.sub(sphere.center);
       base.copy(model.position);
       radius = sphere.radius || 1;
+      centerX = base.x;
+      centerY = base.y;
+      centerReady = true;
       frame();
     });
 
-    // Smoothed cursor position, normalized to -1..1 across the window.
-    let targetX = 0;
-    let targetY = 0;
-    let curX = 0;
-    let curY = 0;
+    // Cursor in normalized device coords (-1..1) + time of last move.
+    let ndcX = 0;
+    let ndcY = 0;
+    let lastMove = -1e9;
     const onPointer = (e: PointerEvent) => {
-      targetX = (e.clientX / window.innerWidth) * 2 - 1;
-      targetY = (e.clientY / window.innerHeight) * 2 - 1;
+      ndcX = (e.clientX / window.innerWidth) * 2 - 1;
+      ndcY = (e.clientY / window.innerHeight) * 2 - 1;
+      lastMove = performance.now();
     };
     window.addEventListener("pointermove", onPointer);
 
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const clamp = THREE.MathUtils.clamp;
     let raf = 0;
     let start = 0;
     const tick = (now: number) => {
       raf = requestAnimationFrame(tick);
       if (!start) start = now;
       const t = (now - start) / 1000;
-      curX += (targetX - curX) * 0.05;
-      curY += (targetY - curY) * 0.05;
 
-      if (model) {
+      if (model && centerReady) {
         if (reduce) {
           model.position.copy(base);
           model.rotation.set(0, -0.5, 0);
         } else {
-          // Orbit (auto-roam) + cursor parallax share the frame budget.
-          const orbX = Math.cos(t * 0.18) * slackX * 0.55;
-          const orbY = Math.sin(t * 0.34) * Math.min(slackY * 0.55, radius * 0.8);
-          model.position.x = base.x + orbX + curX * slackX * 0.3;
-          model.position.y = base.y + orbY - curY * Math.min(slackY * 0.3, radius * 0.6);
-          model.rotation.y = t * 0.28 + curX * 0.4;
-          model.rotation.x = curY * 0.22;
-          model.rotation.z = Math.sin(t * 0.5) * 0.05 - curX * 0.12;
+          const ax = ampX();
+          const ay = ampY();
+
+          // The resting point is wherever the cursor last was (it never snaps
+          // back to the middle), plus a very slow meander so that, given enough
+          // idle time, it gradually wanders to nearby spots instead of orbiting
+          // one point forever. Clamped so the path stays framed.
+          const restX = base.x + ndcX * halfW;
+          const restY = base.y - ndcY * halfH;
+          const meanderX = Math.sin(t * 0.06) * radius * 1.5;
+          const meanderY = Math.cos(t * 0.045) * radius * 1;
+          const targetCX = clamp(restX + meanderX, base.x - (slackX - ax), base.x + (slackX - ax));
+          const targetCY = clamp(restY + meanderY, base.y - (slackY - ay), base.y + (slackY - ay));
+          centerX += (targetCX - centerX) * CENTER_EASE;
+          centerY += (targetCY - centerY) * CENTER_EASE;
+
+          // Gentle local float around that resting point.
+          const desX = centerX + Math.cos(t * WX) * ax;
+          const desY = centerY + Math.sin(t * WY) * ay;
+          model.position.x += (desX - model.position.x) * POS_EASE;
+          model.position.y += (desY - model.position.y) * POS_EASE;
+
+          // Constant, gentle tumble. Never aimed at the cursor.
+          model.rotation.y = t * 0.2;
+          model.rotation.z = Math.sin(t * 0.5) * 0.05;
+          model.rotation.x = Math.sin(t * 0.35) * 0.04;
         }
       }
       renderer.render(scene, camera);
