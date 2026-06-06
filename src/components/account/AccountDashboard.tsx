@@ -4,18 +4,21 @@ import { useState } from "react";
 import { AccountSettings } from "./AccountSettings";
 import { SubscriptionSection } from "./SubscriptionSection";
 import { ContactSupport } from "./ContactSupport";
+import { ContentRequests } from "./ContentRequests";
+import type { PlanSummary } from "@/lib/stripe-customer";
 
-type Tab = "account" | "subscription" | "support";
+type Tab = "content" | "account" | "subscription" | "support";
 
 interface AccountDashboardProps {
-  subscriptions: any[];
+  subscriptions: PlanSummary[];
   hasSubscriptions: boolean;
 }
 
 export function AccountDashboard({ subscriptions, hasSubscriptions }: AccountDashboardProps) {
-  const [activeTab, setActiveTab] = useState<Tab>("account");
+  const [activeTab, setActiveTab] = useState<Tab>("content");
 
   const tabs = [
+    { id: "content", label: "Site updates", icon: "✨" },
     { id: "account", label: "Account Settings", icon: "⚙️" },
     { id: "subscription", label: "Subscription & Billing", icon: "💳" },
     { id: "support", label: "Support", icon: "📧" },
@@ -45,6 +48,7 @@ export function AccountDashboard({ subscriptions, hasSubscriptions }: AccountDas
 
       {/* Tab Content */}
       <div className="min-h-[400px]">
+        {activeTab === "content" && <ContentRequests />}
         {activeTab === "account" && <AccountSettings />}
         {activeTab === "subscription" && (
           <SubscriptionSection subscriptions={subscriptions} hasSubscriptions={hasSubscriptions} />

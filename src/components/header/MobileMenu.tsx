@@ -11,7 +11,7 @@ const MENU = [
   { label: "Automations", href: "/services/automations" },
   { label: "Pricing", href: "/pricing" },
   { label: "Blog", href: "/blog" },
-  { label: "Contact", href: "#contact" },
+  { label: "Contact", href: "/contact" },
 ];
 
 // Hamburger menu shown below the `lg` breakpoint, where the desktop nav and CTA

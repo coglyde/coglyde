@@ -8,7 +8,7 @@ import { ServicesDropdown } from "./header/ServicesDropdown";
 const navLinks = [
   { label: "Blog", href: "/blog" },
   { label: "Pricing", href: "/pricing" },
-  { label: "Contact", href: "#contact" },
+  { label: "Contact", href: "/contact" },
 ];
 
 export function Header() {
