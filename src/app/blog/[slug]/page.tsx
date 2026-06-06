@@ -6,6 +6,7 @@ import { Footer } from "@/components/footer/Footer";
 import { Header } from "@/components/Header";
 import { PageAmbientBackground } from "@/components/PageAmbientBackground";
 import { getPost, getPublishedPosts } from "@/lib/blog";
+import { ogMetadata } from "@/lib/og";
 
 type Params = { params: Promise<{ slug: string }> };
 
@@ -20,12 +21,12 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   return {
     title: `${post.title} | Coglyde`,
     description: post.description,
-    openGraph: {
+    ...ogMetadata({
+      eyebrow: "Article",
       title: post.title,
-      description: post.description,
+      subtitle: post.description,
       type: "article",
-      images: ["/api/og"],
-    },
+    }),
   };
 }
 

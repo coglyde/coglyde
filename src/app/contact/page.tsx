@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ogMetadata } from "@/lib/og";
 import { Footer } from "@/components/footer/Footer";
 import { Header } from "@/components/Header";
 import { PageAmbientBackground } from "@/components/PageAmbientBackground";
@@ -12,6 +13,12 @@ export const metadata: Metadata = {
   title: "Contact · Coglyde",
   description:
     "Tell us about your project. A real person reads every message and replies within a day. Web design, SEO, and automations from a Vancouver studio.",
+  ...ogMetadata({
+    eyebrow: "Contact",
+    title: "Let's build something worth gliding to",
+    subtitle:
+      "Tell us where you want to go. A real person reads every message and replies within a day.",
+  }),
 };
 
 export default function ContactPage() {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { GlowingButton } from "@/components/ui/GlowingButton";
 
 // Opens the Stripe billing portal for the signed-in user. Used on /account and
 // the post-checkout success page. No props: the portal route resolves the
@@ -40,21 +41,24 @@ export function ManageBillingButton({
     }
   }
 
-  const styles =
-    variant === "primary"
-      ? "bg-white text-black hover:bg-white/90 disabled:bg-white/70"
-      : "border border-white/15 bg-white/[0.03] text-white hover:border-white/30 hover:bg-white/[0.06] disabled:opacity-60";
+  const content = loading ? "Opening..." : label;
 
   return (
     <div>
-      <button
-        type="button"
-        onClick={openPortal}
-        disabled={loading}
-        className={`rounded-2xl px-6 py-3 text-sm font-medium transition-colors ${styles}`}
-      >
-        {loading ? "Opening..." : label}
-      </button>
+      {variant === "primary" ? (
+        <GlowingButton type="button" onClick={openPortal} disabled={loading}>
+          {content}
+        </GlowingButton>
+      ) : (
+        <button
+          type="button"
+          onClick={openPortal}
+          disabled={loading}
+          className="rounded-2xl border border-white/15 bg-white/[0.03] px-6 py-3 text-sm font-medium text-white transition-colors hover:border-white/30 hover:bg-white/[0.06] disabled:opacity-60"
+        >
+          {content}
+        </button>
+      )}
       {message ? <p className="mt-2 text-xs text-white/50">{message}</p> : null}
     </div>
   );

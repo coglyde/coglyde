@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { GlowingButton } from "@/components/ui/GlowingButton";
 
 type Request = {
   number: number;
@@ -110,21 +111,17 @@ export function ContentRequests() {
           placeholder="e.g. Add a new event: Summer Session, July 25 at Platform 9, with this poster. Or: mark the hoodie as sold out."
           required
           rows={5}
-          className="w-full resize-none rounded-lg border border-white/15 bg-white/[0.05] px-4 py-2.5 text-white placeholder:text-white/40 transition-colors focus:border-emerald-500/50 focus:outline-none"
+          className="w-full resize-none rounded-lg border border-white/15 bg-white/[0.05] px-4 py-2.5 text-white placeholder:text-white/40 transition-colors focus:border-primary/60 focus:outline-none"
         />
         <div className="flex items-center justify-end">
-          <button
-            type="submit"
-            disabled={loading || !message.trim()}
-            className="rounded-lg bg-emerald-600 px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
-          >
+          <GlowingButton type="submit" disabled={loading || !message.trim()}>
             {loading ? "Sending..." : "Request update"}
-          </button>
+          </GlowingButton>
         </div>
 
         {status === "success" && (
-          <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-4">
-            <p className="text-sm text-emerald-300">
+          <div className="rounded-lg border border-blue-500/30 bg-blue-500/10 p-4">
+            <p className="text-sm text-blue-300">
               Request received. We are on it, watch its status below.
             </p>
           </div>

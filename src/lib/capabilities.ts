@@ -1,34 +1,47 @@
 import type { User } from "@clerk/nextjs/server";
 import { getClientRepo } from "./client-repo";
+import type { PlanSummary } from "./stripe-customer";
 
-// Per-client feature gating, stored on the Clerk user's privateMetadata (no DB),
-// the same place we keep the Stripe customer id and the content repo. The
-// dashboard renders only the sections a client is entitled to. Toggle a client's
-// access by editing their metadata (in the Clerk dashboard now; an internal
-// Coglyde admin view later):
+// Per-client feature gating. The marquee rule: "Site updates" (the AI-agent
+// change-request flow) is a perk of the Hosting + Maintenance retainer, so it
+// only lights up for clients on an active `hosting-maintenance` subscription.
+// Everything stays in Clerk privateMetadata (no DB). Manual overrides live under
+// `features` for testing or comped clients:
 //
 //   privateMetadata: {
-//     contentRepo: "coglyde/nopointmusic",   // enables Site updates
-//     features: { analytics: true },          // enables Analytics
+//     contentRepo: "coglyde/nopointmusic",          // where requests are filed
+//     features: { siteUpdates: true, analytics: true }, // manual overrides
 //   }
-//
-// So a client with no linked site repo simply cannot file content requests: the
-// Site updates section is hidden for them.
+
+const SITE_UPDATES_PLAN = "hosting-maintenance";
+const ACTIVE_STATUSES = new Set(["active", "trialing"]);
+
+function hasSiteUpdatesPlan(subscriptions: PlanSummary[]): boolean {
+  return subscriptions.some(
+    (sub) => sub.planKey === SITE_UPDATES_PLAN && ACTIVE_STATUSES.has(sub.status),
+  );
+}
 
 export type Capabilities = {
   siteUpdates: boolean;
   analytics: boolean;
 };
 
-export function getCapabilities(user: User | null): Capabilities {
-  const meta = user?.privateMetadata as { features?: { analytics?: boolean } } | undefined;
+export function getCapabilities(
+  user: User | null,
+  subscriptions: PlanSummary[],
+): Capabilities {
+  const meta = user?.privateMetadata as
+    | { features?: { siteUpdates?: boolean; analytics?: boolean } }
+    | undefined;
+
+  // Entitled by the Hosting + Maintenance plan, or a manual override flag, and
+  // only actionable once a site repo is linked (the agent needs somewhere to
+  // file requests).
+  const entitled = meta?.features?.siteUpdates === true || hasSiteUpdatesPlan(subscriptions);
+
   return {
-    // A linked site repo (per-user metadata, or the DEFAULT_CONTENT_REPO fallback
-    // while there is a single client). Drop the env fallback in client-repo.ts
-    // for strict per-client gating once there is more than one client.
-    siteUpdates: getClientRepo(user) !== null,
-    // Analytics is off until a client's analytics collection is connected
-    // (the analytics phase wires this on).
+    siteUpdates: entitled && getClientRepo(user) !== null,
     analytics: meta?.features?.analytics === true,
   };
 }

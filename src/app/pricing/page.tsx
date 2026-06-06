@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ogMetadata } from "@/lib/og";
 import { Footer } from "@/components/footer/Footer";
 import { Header } from "@/components/Header";
 import { PageAmbientBackground } from "@/components/PageAmbientBackground";
@@ -11,6 +12,12 @@ export const metadata: Metadata = {
   title: "Pricing | Coglyde",
   description:
     "All-in-one bundles, custom website builds with hosting and maintenance, hands-on SEO retainers, and a menu of automations. Pick a service tab to see its plans and add-ons.",
+  ...ogMetadata({
+    eyebrow: "Pricing",
+    title: "Plans that scale with you",
+    subtitle:
+      "All-in-one bundles, custom website builds, hands-on SEO retainers, and a menu of automations.",
+  }),
 };
 
 export default function PricingPage() {

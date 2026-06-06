@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
 import { Geist, Geist_Mono } from "next/font/google";
 import { clerkAppearance } from "@/lib/clerk-appearance";
+import { ogMetadata } from "@/lib/og";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -23,21 +24,11 @@ export const metadata: Metadata = {
   icons: {
     icon: "/coglyde-favicon.png",
   },
-  openGraph: {
-    title: "Coglyde",
-    description: "Building sites that glide past the competition",
-    url: "https://coglyde.com",
-    siteName: "Coglyde",
-    images: [
-      {
-        url: "/api/og",
-        width: 1200,
-        height: 630,
-        alt: "Coglyde",
-      },
-    ],
-    type: "website",
-  },
+  ...ogMetadata({
+    title: "Glide over your competition with web design & SEO",
+    subtitle:
+      "Future-proof your business with AI-powered web design, SEO and automations. From your site to sales funnels, we are your one-stop shop.",
+  }),
 };
 
 export default function RootLayout({

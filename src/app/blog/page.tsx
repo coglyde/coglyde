@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { ogMetadata } from "@/lib/og";
 import { Footer } from "@/components/footer/Footer";
 import { Header } from "@/components/Header";
 import { PageAmbientBackground } from "@/components/PageAmbientBackground";
@@ -9,6 +10,12 @@ export const metadata: Metadata = {
   title: "Blog | Coglyde",
   description:
     "Practical guides and insights on web design, SEO, GEO and digital marketing from the Coglyde team.",
+  ...ogMetadata({
+    eyebrow: "Blog",
+    title: "Guides on web design, SEO and GEO",
+    subtitle:
+      "Practical insights on web design, SEO, GEO and digital marketing from the Coglyde team.",
+  }),
 };
 
 function formatDate(date: string | null): string | null {

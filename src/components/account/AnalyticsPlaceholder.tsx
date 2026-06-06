@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 // (the analytics phase replaces this with real charts).
 export function AnalyticsPlaceholder() {
   return (
-    <Card>
+    <Card className="border-transparent">
       <CardContent className="flex flex-col items-center justify-center gap-3 py-16 text-center">
         <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
           <BarChart3 className="h-6 w-6 text-muted-foreground" />

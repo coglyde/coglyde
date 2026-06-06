@@ -77,6 +77,8 @@ export type PlanSummary = {
   intervalLabel: string;
   currentPeriodEnd: number | null;
   cancelAtPeriodEnd: boolean;
+  // The plan's internal key (price metadata.planKey), used for feature gating.
+  planKey: string | null;
 };
 
 export type SubscriptionSummary = {
@@ -153,6 +155,7 @@ export async function getSubscriptionSummary(
         intervalLabel,
         currentPeriodEnd: periodEnd(sub),
         cancelAtPeriodEnd: sub.cancel_at_period_end,
+        planKey: price?.metadata?.planKey ?? null,
       } satisfies PlanSummary;
     });
 
