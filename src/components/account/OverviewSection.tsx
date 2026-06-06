@@ -9,7 +9,8 @@ import {
   Globe,
   type LucideIcon,
 } from "lucide-react";
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { GlowingButton } from "@/components/ui/GlowingButton";
 import { SitePreview } from "./SitePreview";
 import type { Capabilities } from "@/lib/capabilities";
 import type { ClientSite } from "@/lib/client-site";
@@ -70,36 +71,30 @@ export function OverviewSection({
         <p className="text-muted-foreground">Here is your Coglyde workspace.</p>
       </div>
 
-      {/* Hero: live site preview + status + visit. */}
-      <Card className="overflow-hidden border-transparent bg-white/[0.02] p-0">
-        <div className="grid md:grid-cols-[1.5fr_1fr]">
-          <div className="border-b border-white/[0.06] bg-black md:border-b-0 md:border-r">
-            {site.url ? (
+      {site.url ? (
+        // Connected: live preview + status + visit.
+        <Card className="overflow-hidden border-transparent bg-white/[0.02] p-0">
+          <div className="grid md:grid-cols-[1.5fr_1fr]">
+            <div className="border-b border-white/[0.06] bg-black md:border-b-0 md:border-r">
               <SitePreview url={site.url} name={site.name} />
-            ) : (
-              <div className="flex aspect-[16/10] items-center justify-center text-white/25">
-                <Globe className="h-8 w-8" />
+            </div>
+
+            <div className="flex flex-col justify-center gap-5 p-6">
+              <div className="flex items-center gap-2">
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-500/60" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-green-500" />
+                </span>
+                <span className="text-sm font-medium text-white/80">Live</span>
               </div>
-            )}
-          </div>
 
-          <div className="flex flex-col justify-center gap-5 p-6">
-            <div className="flex items-center gap-2">
-              <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-500/60" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-green-500" />
-              </span>
-              <span className="text-sm font-medium text-white/80">Live</span>
-            </div>
+              <div className="space-y-1">
+                <p className="text-xs uppercase tracking-[0.18em] text-white/40">Your website</p>
+                <h3 className="text-xl font-semibold text-white">{site.name}</h3>
+                {domain && <p className="truncate text-sm text-white/45">{domain}</p>}
+              </div>
 
-            <div className="space-y-1">
-              <p className="text-xs uppercase tracking-[0.18em] text-white/40">Your website</p>
-              <h3 className="text-xl font-semibold text-white">{site.name}</h3>
-              {domain && <p className="truncate text-sm text-white/45">{domain}</p>}
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              {site.url && (
+              <div className="flex flex-wrap gap-2">
                 <a
                   href={site.url}
                   target="_blank"
@@ -108,20 +103,39 @@ export function OverviewSection({
                 >
                   Visit site <ExternalLink className="h-3.5 w-3.5" />
                 </a>
-              )}
-              {capabilities.siteUpdates && (
-                <button
-                  type="button"
-                  onClick={() => onNavigate("content")}
-                  className="inline-flex items-center rounded-lg px-4 py-2 text-sm font-medium text-white/55 transition-colors hover:text-white"
-                >
-                  Request an update
-                </button>
-              )}
+                {capabilities.siteUpdates && (
+                  <button
+                    type="button"
+                    onClick={() => onNavigate("content")}
+                    className="inline-flex items-center rounded-lg px-4 py-2 text-sm font-medium text-white/55 transition-colors hover:text-white"
+                  >
+                    Request an update
+                  </button>
+                )}
+              </div>
             </div>
           </div>
-        </div>
-      </Card>
+        </Card>
+      ) : (
+        // No site connected: say so, and point them to the team.
+        <Card className="border-transparent bg-white/[0.02]">
+          <CardContent className="flex flex-col items-center gap-4 py-14 text-center">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
+              <Globe className="h-6 w-6 text-muted-foreground" />
+            </div>
+            <div className="space-y-1">
+              <p className="font-medium text-foreground">No website connected yet</p>
+              <p className="mx-auto max-w-sm text-sm text-muted-foreground">
+                If your site is already live, reach out and our team will connect it
+                to your dashboard.
+              </p>
+            </div>
+            <GlowingButton type="button" onClick={() => onNavigate("support")}>
+              Contact our team
+            </GlowingButton>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Entry cards into the other sections. */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
