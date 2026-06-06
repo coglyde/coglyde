@@ -1,4 +1,5 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import { NextResponse } from "next/server";
 
 // Next.js 16 renamed the `middleware` convention to `proxy` (Node.js runtime).
 // Clerk's clerkMiddleware() returns a standard middleware handler, so it slots
@@ -11,7 +12,15 @@ const isProtectedRoute = createRouteMatcher(["/account(.*)"]);
 
 export default clerkMiddleware(async (auth, request) => {
   if (isProtectedRoute(request)) {
-    await auth.protect();
+    const { userId } = await auth();
+    if (!userId) {
+      // Redirect explicitly to our sign-in route. auth.protect() returns a 404
+      // in production when it cannot resolve the sign-in URL, so we handle the
+      // redirect ourselves and come back to where they were.
+      const signInUrl = new URL("/sign-in", request.url);
+      signInUrl.searchParams.set("redirect_url", request.url);
+      return NextResponse.redirect(signInUrl);
+    }
   }
 });
 
