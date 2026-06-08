@@ -44,7 +44,10 @@ export function ScrollRevealText({ text, className }: ScrollRevealTextProps) {
 
   return (
     <div ref={containerRef} className="relative h-[300vh]">
-      <div className="sticky top-0 flex h-screen items-center">
+      {/* Top padding offsets the fixed navbar so the text centers within the
+          space *below* it, not the full viewport — otherwise the navbar shoves
+          the optical center up and the block reads as top-heavy. */}
+      <div className="sticky top-0 flex h-screen items-center pt-16 sm:pt-20">
         <div className="mx-auto w-full max-w-7xl px-6">
           <motion.p
             className={className}

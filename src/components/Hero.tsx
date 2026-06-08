@@ -1,6 +1,6 @@
 import Image from "next/image";
-import { BOOKING_URL } from "@/lib/links";
 import { CockpitIntro } from "./CockpitIntro";
+import { GlowingButton } from "./ui/GlowingButton";
 import { Header } from "./Header";
 import { ServiceMarquee } from "./ServiceMarquee";
 import { StarfieldBackground } from "./StarfieldBackground";
@@ -42,21 +42,7 @@ export function Hero() {
         </p>
 
         <div className="mt-7 flex flex-wrap items-center justify-center gap-3 sm:mt-10">
-          <a
-            href="#contact"
-            className="rounded-2xl border border-white/15 bg-black/60 px-7 py-3.5 text-sm font-medium text-white backdrop-blur-sm transition hover:border-white/25 hover:bg-black/70"
-            style={{ boxShadow: "0 0 24px rgba(120, 130, 255, 0.18)" }}
-          >
-            Contact us
-          </a>
-          <a
-            href={BOOKING_URL}
-            target="_blank"
-            rel="noreferrer"
-            className="rounded-2xl bg-white/15 px-7 py-3.5 text-sm font-medium text-white backdrop-blur-sm transition hover:bg-white/25"
-          >
-            Glyde
-          </a>
+          <GlowingButton href="#contact">Contact us</GlowingButton>
         </div>
 
         <div className="mt-10 w-full sm:mt-14">

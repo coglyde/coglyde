@@ -23,6 +23,11 @@ const HERO_START_SCALE = 0.06;
 // hero holds, fully settled and centered, for the remaining scroll before the
 // pin releases — so it lingers a beat instead of scrolling away immediately.
 const SETTLE = 0.7;
+// The porthole center sits at 62% of the viewport (see object-[50%_62%]). We
+// scale about that point and lift the ship by this much over the fly-in so the
+// rim's top and bottom recede together instead of the bottom dropping off
+// first. Tuned by eye: too much and the top leaves first instead.
+const SHIP_LIFT_VH = 6;
 
 export function CockpitIntro({ children }: CockpitIntroProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -53,9 +58,14 @@ export function CockpitIntro({ children }: CockpitIntroProps) {
       // Ship: geometric (exponential) scale so each scroll tick changes the
       // apparent zoom by the same ratio — the motion reads as a steady,
       // wheel-paced fly-through instead of a fast lurch.
-      const shipScale = SHIP_MAX_SCALE ** range(a, 0, 0.82);
+      const flyIn = range(a, 0, 0.82);
+      const shipScale = SHIP_MAX_SCALE ** flyIn;
+      // Lift the ship up over the fly-in so the porthole center (62% of the
+      // viewport) rises toward screen-center — the rim's top and bottom then
+      // recede together instead of the bottom dropping off first.
+      const shipLift = SHIP_LIFT_VH * flyIn;
       const shipOpacity = 1 - range(a, 0.55, 0.78);
-      ship.style.transform = `scale(${shipScale})`;
+      ship.style.transform = `translateY(${-shipLift}vh) scale(${shipScale})`;
       ship.style.opacity = String(shipOpacity);
 
       // Hero: emerges from the vanishing point as the ship passes and lands
@@ -105,8 +115,8 @@ export function CockpitIntro({ children }: CockpitIntroProps) {
           className="pointer-events-none absolute inset-0"
           style={{
             zIndex: 1,
-            transformOrigin: "50% 50%",
-            transform: "scale(1)",
+            transformOrigin: "50% 62%",
+            transform: "translateY(0) scale(1)",
             opacity: 1,
             willChange: "transform, opacity",
           }}

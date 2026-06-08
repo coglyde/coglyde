@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { ReactNode } from "react";
 import { pricingTabs, type PricingTabKey } from "@/lib/pricing";
 import { PricingSidebar } from "./PricingSidebar";
+import { useDeepLinkSelection } from "./useDeepLinkSelection";
 import { AllInOnePanel } from "./panels/AllInOnePanel";
 import { AutomationsPanel } from "./panels/AutomationsPanel";
 import { SeoPanel } from "./panels/SeoPanel";
@@ -20,6 +21,13 @@ const PANELS: Record<PricingTabKey, () => ReactNode> = {
 
 export function PricingDashboard() {
   const [activeKey, setActiveKey] = useState<PricingTabKey>(pricingTabs[0].key);
+
+  // Allow linking straight to a category, e.g. /pricing?category=website-design
+  useDeepLinkSelection(
+    "category",
+    pricingTabs.map((t) => t.key),
+    (value) => setActiveKey(value as PricingTabKey),
+  );
 
   const tab = pricingTabs.find((t) => t.key === activeKey) ?? pricingTabs[0];
   const Panel = PANELS[tab.key];

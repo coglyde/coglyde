@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { ReactNode } from "react";
 import { Stepper } from "./Stepper";
+import { useDeepLinkSelection } from "./useDeepLinkSelection";
 
 type Step = { key: string; label: string; render: () => ReactNode };
 
@@ -11,6 +12,13 @@ type Step = { key: string; label: string; render: () => ReactNode };
 // dumped on screen at once.
 export function SteppedPanel({ steps }: { steps: Step[] }) {
   const [activeKey, setActiveKey] = useState(steps[0]?.key ?? "");
+
+  // Allow linking straight to a step, e.g. /pricing?step=hosting.
+  useDeepLinkSelection(
+    "step",
+    steps.map((s) => s.key),
+    setActiveKey,
+  );
 
   const index = Math.max(
     0,

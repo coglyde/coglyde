@@ -29,7 +29,7 @@ export function WebsiteDesignPanel() {
           ),
         },
         {
-          key: "care",
+          key: "hosting",
           label: "Hosting & maintenance",
           render: () => (
             <div>
