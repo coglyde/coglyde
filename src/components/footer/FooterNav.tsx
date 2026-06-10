@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import type { ReactNode } from "react";
 
 type LinkItem = { label: string; href: string; external?: boolean; icon?: ReactNode };
@@ -72,13 +73,15 @@ export function FooterNav() {
   return (
     <div className="grid gap-10 lg:grid-cols-[1.4fr_1fr_1fr_1fr] lg:gap-16">
       <div className="flex flex-col gap-6">
-        <Image
-          src="/coglyde-logo.png"
-          alt="Coglyde"
-          width={430}
-          height={125}
-          className="h-9 w-auto self-start"
-        />
+        <Link href="/" aria-label="Coglyde home" className="self-start">
+          <Image
+            src="/coglyde-logo.png"
+            alt="Coglyde"
+            width={430}
+            height={125}
+            className="h-9 w-auto"
+          />
+        </Link>
         <p className="max-w-xs text-[0.92rem] leading-[1.55] text-white/55">
           A Vancouver-based web design and digital marketing studio building
           sites that glide past the competition.
