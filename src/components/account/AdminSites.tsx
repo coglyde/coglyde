@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { ExternalLink } from "lucide-react";
-import { allContentTypes } from "@/lib/site-content";
 import { ContentEditor } from "./ContentEditor";
 
 type Site = {
@@ -72,7 +71,7 @@ export function AdminSites() {
           </div>
         </div>
 
-        <ContentEditor types={allContentTypes()} clientId={selected.id} />
+        <ContentEditor clientId={selected.id} />
       </div>
     );
   }

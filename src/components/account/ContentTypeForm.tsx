@@ -2,12 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { GlowingButton } from "@/components/ui/GlowingButton";
-import {
-  getSchema,
-  type ContentField,
-  type ContentItem,
-  type ContentSchema,
-} from "@/lib/site-content";
+import type { ContentField, ContentItem, ContentSchema } from "@/lib/site-content";
 
 type Status = "idle" | "success" | "error";
 
@@ -32,21 +27,19 @@ function blank(schema: ContentSchema): ContentItem {
   return item;
 }
 
-/** Direct editor for one content type. Loads the current list from the client's
- *  repo, edits rows in place, and publishes straight to the live site. When
- *  `clientId` is set (admin), it reads/writes that client's repo. */
-export function ContentTypeForm({ type, clientId }: { type: string; clientId?: string }) {
-  const schema = getSchema(type);
+/** Direct editor for one content type (schema comes from the site's own
+ *  _schema.json). Loads the current list, edits rows, publishes to the repo.
+ *  `clientId` is set when an admin edits a chosen client's site. */
+export function ContentTypeForm({ schema, clientId }: { schema: ContentSchema; clientId?: string }) {
   const [items, setItems] = useState<ContentItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState("");
 
-  const url = `/api/site-content/${type}${clientId ? `?clientId=${clientId}` : ""}`;
+  const url = `/api/site-content/${schema.key}${clientId ? `?clientId=${clientId}` : ""}`;
 
   const load = useCallback(async () => {
-    if (!schema) return;
     try {
       const res = await fetch(url);
       if (res.ok) {
@@ -65,8 +58,6 @@ export function ContentTypeForm({ type, clientId }: { type: string; clientId?: s
       await load();
     })();
   }, [load]);
-
-  if (!schema) return null;
 
   const setText = (i: number, key: string, value: string) =>
     setItems((prev) => prev.map((it, idx) => (idx === i ? { ...it, [key]: value } : it)));
@@ -196,7 +187,7 @@ export function ContentTypeForm({ type, clientId }: { type: string; clientId?: s
   return (
     <form onSubmit={handleSubmit} className="rounded-xl border border-white/10 bg-white/[0.03] p-5">
       <h3 className="text-lg font-semibold text-white">{schema.label}</h3>
-      <p className="mt-1 text-sm text-white/55">{schema.description}</p>
+      {schema.description && <p className="mt-1 text-sm text-white/55">{schema.description}</p>}
 
       {loading ? (
         <p className="mt-4 text-sm text-white/40">Loading...</p>

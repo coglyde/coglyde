@@ -1,15 +1,27 @@
 "use client";
 
-import { getSchema } from "@/lib/site-content";
+import { useEffect, useState } from "react";
+import type { ContentSchema } from "@/lib/site-content";
 import { ContentTypeForm } from "./ContentTypeForm";
 
 /**
- * "Edit content" section: a direct form for each given content type. Saves
- * commit straight to the repo and publish on the next rebuild (no agent).
- * `clientId` is set when an admin is editing a chosen client's site.
+ * "Edit content" section. Fetches the content types this site declares (its
+ * own _schema.json, filtered to what the requester may edit) and renders a form
+ * for each. `clientId` is set when an admin is editing a chosen client's site.
  */
-export function ContentEditor({ types, clientId }: { types: string[]; clientId?: string }) {
-  const known = types.filter((type) => getSchema(type));
+export function ContentEditor({ clientId }: { clientId?: string }) {
+  const [schemas, setSchemas] = useState<ContentSchema[] | null>(null);
+
+  useEffect(() => {
+    void (async () => {
+      try {
+        const res = await fetch(`/api/site-content${clientId ? `?clientId=${clientId}` : ""}`);
+        setSchemas(res.ok ? ((await res.json()).types ?? []) : []);
+      } catch {
+        setSchemas([]);
+      }
+    })();
+  }, [clientId]);
 
   return (
     <div className="space-y-5">
@@ -23,14 +35,16 @@ export function ContentEditor({ types, clientId }: { types: string[]; clientId?:
         </div>
       )}
 
-      {known.length === 0 ? (
+      {schemas === null ? (
+        <p className="text-sm text-white/40">Loading...</p>
+      ) : schemas.length === 0 ? (
         <p className="text-sm text-white/40">
-          No editable sections are enabled {clientId ? "for this site" : "for your account"} yet.
+          No editable sections {clientId ? "for this site" : "for your account"} yet.
         </p>
       ) : (
         <div className="space-y-5">
-          {known.map((type) => (
-            <ContentTypeForm key={type} type={type} clientId={clientId} />
+          {schemas.map((schema) => (
+            <ContentTypeForm key={schema.key} schema={schema} clientId={clientId} />
           ))}
         </div>
       )}

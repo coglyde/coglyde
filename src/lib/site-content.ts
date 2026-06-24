@@ -1,10 +1,10 @@
-// Declarative content schemas shared by the dashboard (renders the form) and
-// the API (validates + commits). Each entry maps a content "type" to the file
-// in the client's repo and the fields a client may edit. Adding a type, a
-// field, or a new field type is additive here, never a migration.
+// The reusable content engine: field types, validation, and a parser for a
+// per-site schema. The *engine* is shared across all clients; the actual content
+// types are NOT - each client repo declares its own in content/_schema.json
+// (e.g. a music site has "events"/"gallery"; a racing site has "stats"/"news").
 //
-// Isomorphic (pure data + validation, no server-only imports), so the client
-// form imports the same schema the API validates against.
+// Isomorphic (pure data + parsing/validation, no server-only imports), so the
+// client form imports the same types/validation the API uses.
 
 export type FieldType = "text" | "textarea" | "url" | "date" | "stringList";
 
@@ -40,100 +40,64 @@ export type ContentSchema = {
   listKey?: string;
 };
 
-export const SITE_CONTENT_SCHEMAS: Record<string, ContentSchema> = {
-  stats: {
-    key: "stats",
-    label: "Career stats",
-    description:
-      "The headline numbers across the site (the home stats band and the sponsorships pitch both read these).",
-    path: "content/stats.json",
-    itemNoun: "stat",
-    min: 1,
-    max: 8,
-    fields: [
-      { key: "value", label: "Value", type: "text", placeholder: "50", pattern: "^\\d+\\+?$" },
-      { key: "label", label: "Label", type: "text", placeholder: "Races" },
-    ],
-  },
-
-  news: {
-    key: "news",
-    label: "News cards",
-    description: "The cards in the home-page News carousel.",
-    path: "content/home-news.json",
-    itemNoun: "card",
-    min: 0,
-    max: 6,
-    fields: [
-      { key: "title", label: "Title", type: "text", placeholder: "Fast Forward: Episode 3" },
-      { key: "blurb", label: "Blurb", type: "textarea", placeholder: "One-line summary" },
-      { key: "image", label: "Image URL", type: "url", placeholder: "/news/photo.png" },
-      { key: "href", label: "Link", type: "url", placeholder: "https://..." },
-      { key: "cta", label: "Button text", type: "text", placeholder: "Read More" },
-    ],
-  },
-
-  press: {
-    key: "press",
-    label: "Press coverage",
-    description: "The press/media links on the Highlights page.",
-    path: "content/news.json",
-    itemNoun: "link",
-    min: 0,
-    max: 12,
-    fields: [
-      { key: "title", label: "Title", type: "text" },
-      { key: "outlet", label: "Outlet", type: "text", placeholder: "Aldergrove Star" },
-      { key: "date", label: "Date", type: "text", optional: true, placeholder: "Nov 2024" },
-      { key: "url", label: "Link", type: "url", optional: true, placeholder: "https://..." },
-    ],
-  },
-
-  timeline: {
-    key: "timeline",
-    label: "Season by season",
-    description: "The year-by-year record on the home Profile section (newest first).",
-    path: "content/timeline.json",
-    itemNoun: "season",
-    min: 1,
-    max: 30,
-    fields: [
-      { key: "year", label: "Year", type: "text", placeholder: "2024", pattern: "^\\d{4}$" },
-      { key: "items", label: "Highlights", type: "stringList" },
-    ],
-  },
-
-  calendar: {
-    key: "calendar",
-    label: "Race calendar",
-    description: "The rounds on the Race Calendar page. Leave the start date empty for a TBC round.",
-    path: "content/calendar.json",
-    listKey: "races",
-    itemNoun: "round",
-    min: 0,
-    max: 40,
-    fields: [
-      { key: "date", label: "Start date", type: "date", nullable: true },
-      { key: "endDate", label: "End date", type: "date", optional: true },
-      { key: "event", label: "Event", type: "text", placeholder: "Round 3" },
-      { key: "series", label: "Series", type: "text", placeholder: "West Coast Kart Club" },
-      { key: "venue", label: "Venue", type: "text", placeholder: "Greg Moore Raceway" },
-      { key: "location", label: "Location", type: "text", placeholder: "Chilliwack, BC" },
-      { key: "result", label: "Result", type: "text", optional: true, placeholder: "1st" },
-    ],
-  },
-};
+/** Where each client repo declares its editable content types. */
+export const SCHEMA_FILE = "content/_schema.json";
 
 export type FieldValue = string | string[] | null;
 export type ContentItem = Record<string, FieldValue>;
 
-export function getSchema(type: string): ContentSchema | null {
-  return SITE_CONTENT_SCHEMAS[type] ?? null;
+// --- Parsing a repo's _schema.json (defensive: bad entries are skipped) -----
+
+const VALID_FIELD_TYPES = new Set<FieldType>(["text", "textarea", "url", "date", "stringList"]);
+
+function parseField(raw: unknown): ContentField | null {
+  if (typeof raw !== "object" || raw === null) return null;
+  const r = raw as Record<string, unknown>;
+  if (typeof r.key !== "string" || typeof r.label !== "string") return null;
+  if (typeof r.type !== "string" || !VALID_FIELD_TYPES.has(r.type as FieldType)) return null;
+  const field: ContentField = { key: r.key, label: r.label, type: r.type as FieldType };
+  if (typeof r.placeholder === "string") field.placeholder = r.placeholder;
+  if (typeof r.pattern === "string") field.pattern = r.pattern;
+  if (r.optional === true) field.optional = true;
+  if (r.nullable === true) field.nullable = true;
+  return field;
 }
 
-export function allContentTypes(): string[] {
-  return Object.keys(SITE_CONTENT_SCHEMAS);
+function parseSchema(raw: unknown): ContentSchema | null {
+  if (typeof raw !== "object" || raw === null) return null;
+  const r = raw as Record<string, unknown>;
+  if (typeof r.key !== "string" || typeof r.label !== "string" || typeof r.path !== "string") {
+    return null;
+  }
+  if (!Array.isArray(r.fields)) return null;
+  const fields = r.fields.map(parseField).filter((f): f is ContentField => f !== null);
+  if (fields.length === 0) return null;
+
+  const schema: ContentSchema = {
+    key: r.key,
+    label: r.label,
+    path: r.path,
+    description: typeof r.description === "string" ? r.description : "",
+    itemNoun: typeof r.itemNoun === "string" ? r.itemNoun : "item",
+    fields,
+  };
+  if (typeof r.min === "number") schema.min = r.min;
+  if (typeof r.max === "number") schema.max = r.max;
+  if (typeof r.listKey === "string") schema.listKey = r.listKey;
+  return schema;
 }
+
+/** Parse a repo's _schema.json. Accepts `{ types: [...] }` or a bare `[...]`. */
+export function parseSchemas(json: unknown): ContentSchema[] {
+  let arr: unknown[] = [];
+  if (Array.isArray(json)) arr = json;
+  else if (json && typeof json === "object" && Array.isArray((json as { types?: unknown }).types)) {
+    arr = (json as { types: unknown[] }).types;
+  }
+  return arr.map(parseSchema).filter((s): s is ContentSchema => s !== null);
+}
+
+// --- Validating submitted content against a schema --------------------------
 
 type FieldOutcome = { value: FieldValue | undefined } | { error: string };
 

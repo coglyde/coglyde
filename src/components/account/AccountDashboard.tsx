@@ -114,7 +114,7 @@ export function AccountDashboard({
           />
         )}
         {active === "sites" && <AdminSites />}
-        {active === "edit" && <ContentEditor types={capabilities.editableContent} />}
+        {active === "edit" && <ContentEditor />}
         {active === "content" && <ContentRequests />}
         {active === "analytics" && <AnalyticsPlaceholder />}
         {active === "billing" && (

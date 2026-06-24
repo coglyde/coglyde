@@ -1,42 +1,33 @@
-import { currentUser, clerkClient, type User } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
-import { getClientRepo } from "@/lib/client-repo";
-import { getEditableContentTypes } from "@/lib/capabilities";
-import { isAdmin } from "@/lib/admin";
-import { getSchema, validateContent, type ContentSchema } from "@/lib/site-content";
+import { resolveSubject, loadSchemas, allowedSchemas } from "@/lib/site-content-access";
+import { validateContent, type ContentSchema } from "@/lib/site-content";
 import { getRepoFile, putRepoFile } from "@/lib/github-app";
 import { notifyTeam } from "@/lib/notify";
 
 // Node runtime: github-app.ts signs a JWT with node:crypto.
 export const runtime = "nodejs";
 
-type Resolved = { requester: User; subject: User; schema: ContentSchema; repo: string };
-type Failure = { error: string; status: 400 | 401 | 403 | 404 };
+type Ready = {
+  repo: string;
+  schema: ContentSchema;
+  requesterName: string;
+};
 
-// Work out who is editing, whose content, which schema, and whether it's allowed.
-// A client edits only their own enabled types; an admin may target any client
-// (?clientId=) and edit any known type.
-async function resolve(type: string, clientId: string | null): Promise<Resolved | Failure> {
-  const requester = await currentUser();
-  if (!requester) return { error: "Unauthorized", status: 401 };
+// Resolve the subject, load their repo schema, and find the requested type the
+// requester is allowed to edit.
+async function ready(type: string, clientId: string | null): Promise<Ready | { error: string; status: number }> {
+  const access = await resolveSubject(clientId);
+  if ("error" in access) return access;
 
-  const schema = getSchema(type);
-  if (!schema) return { error: "Unknown content type.", status: 404 };
+  const schemas = await loadSchemas(access.repo);
+  const schema = allowedSchemas(access, schemas).find((s) => s.key === type);
+  if (!schema) return { error: "That editor is not available for this site.", status: 404 };
 
-  if (clientId) {
-    if (!isAdmin(requester)) return { error: "Forbidden.", status: 403 };
-    const subject = await (await clerkClient()).users.getUser(clientId);
-    const repo = getClientRepo(subject);
-    if (!repo) return { error: "That client has no linked site.", status: 400 };
-    return { requester, subject, schema, repo };
-  }
+  const email = access.requester.emailAddresses[0]?.emailAddress ?? "unknown";
+  const requesterName =
+    [access.requester.firstName, access.requester.lastName].filter(Boolean).join(" ") || email;
 
-  if (!getEditableContentTypes(requester).includes(type)) {
-    return { error: "That editor is not enabled for your account.", status: 403 };
-  }
-  const repo = getClientRepo(requester);
-  if (!repo) return { error: "No site is linked to your account yet.", status: 400 };
-  return { requester, subject: requester, schema, repo };
+  return { repo: access.repo, schema, requesterName };
 }
 
 function listFrom(schema: ContentSchema, json: unknown): unknown {
@@ -53,7 +44,7 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ type: strin
   try {
     const { type } = await ctx.params;
     const clientId = new URL(req.url).searchParams.get("clientId");
-    const r = await resolve(type, clientId);
+    const r = await ready(type, clientId);
     if ("error" in r) return NextResponse.json({ error: r.error }, { status: r.status });
 
     const file = await getRepoFile(r.repo, r.schema.path);
@@ -70,7 +61,7 @@ export async function PUT(req: NextRequest, ctx: { params: Promise<{ type: strin
   try {
     const { type } = await ctx.params;
     const clientId = new URL(req.url).searchParams.get("clientId");
-    const r = await resolve(type, clientId);
+    const r = await ready(type, clientId);
     if ("error" in r) return NextResponse.json({ error: r.error }, { status: r.status });
 
     const body = (await req.json()) as { items?: unknown };
@@ -92,17 +83,14 @@ export async function PUT(req: NextRequest, ctx: { params: Promise<{ type: strin
       content = result.items;
     }
 
-    const email = r.requester.emailAddresses[0]?.emailAddress ?? "unknown";
-    const name = [r.requester.firstName, r.requester.lastName].filter(Boolean).join(" ") || email;
-
     await putRepoFile(
       r.repo,
       r.schema.path,
       content,
-      `Update ${r.schema.label} via Coglyde dashboard (${name})`,
+      `Update ${r.schema.label} via Coglyde dashboard (${r.requesterName})`,
       file?.sha,
     );
-    await notifyTeam(`${name} edited ${r.schema.label} on ${r.repo}`);
+    await notifyTeam(`${r.requesterName} edited ${r.schema.label} on ${r.repo}`);
 
     return NextResponse.json({ ok: true });
   } catch (error) {

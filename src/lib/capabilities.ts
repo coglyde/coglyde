@@ -1,6 +1,5 @@
 import type { User } from "@clerk/nextjs/server";
 import { getClientRepo } from "./client-repo";
-import { SITE_CONTENT_SCHEMAS } from "./site-content";
 import type { PlanSummary } from "./stripe-customer";
 
 // Per-client feature gating. The marquee rule: "Site updates" (the AI-agent
@@ -32,16 +31,14 @@ export type Capabilities = {
   editableContent: string[];
 };
 
-// Which direct editors a client may use: the enabled keys, filtered to ones we
-// actually have a schema for, and only when a repo is linked to commit to.
-// Used by the dashboard (to show editors) and the API (to authorize a save).
+// Content-type keys a client may self-edit, from privateMetadata.editableContent
+// (only when a repo is linked). These are intersected with the repo's own
+// _schema.json at the API, so an unknown key here is simply ignored there.
 export function getEditableContentTypes(user: User | null): string[] {
   if (getClientRepo(user) === null) return [];
   const meta = user?.privateMetadata as { editableContent?: unknown } | undefined;
   const list = Array.isArray(meta?.editableContent) ? meta.editableContent : [];
-  return list.filter(
-    (type): type is string => typeof type === "string" && type in SITE_CONTENT_SCHEMAS,
-  );
+  return list.filter((type): type is string => typeof type === "string");
 }
 
 export function getCapabilities(
