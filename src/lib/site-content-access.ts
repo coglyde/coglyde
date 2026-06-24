@@ -33,10 +33,10 @@ export async function loadSchemas(repo: string): Promise<ContentSchema[]> {
   return file ? parseSchemas(file.json) : [];
 }
 
-// Types the subject may edit: an admin gets every type the repo declares; a
-// client gets only the repo types they're enabled for (editableContent).
+// Types the subject may edit: the repo types they're enabled for
+// (editableContent). When an admin views as a client, this stays faithful to
+// what that client actually sees, since `subject` is the client.
 export function allowedSchemas(access: Subject, schemas: ContentSchema[]): ContentSchema[] {
-  if (access.admin) return schemas;
   const enabled = new Set(getEditableContentTypes(access.subject));
   return schemas.filter((schema) => enabled.has(schema.key));
 }

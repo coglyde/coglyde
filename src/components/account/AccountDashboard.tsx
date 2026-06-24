@@ -43,6 +43,7 @@ type Props = {
   userName: string;
   site: ClientSite;
   isAdmin: boolean;
+  impersonating?: { id: string; name: string } | null;
 };
 
 export function AccountDashboard({
@@ -52,7 +53,11 @@ export function AccountDashboard({
   userName,
   site,
   isAdmin,
+  impersonating,
 }: Props) {
+  // When an admin is viewing as a client, the content + request sections act on
+  // that client's site.
+  const clientId = impersonating?.id;
   const canEdit = capabilities.editableContent.length > 0;
   const allItems: NavItem[] = [
     { id: "overview", label: "Overview", icon: LayoutDashboard },
@@ -76,9 +81,26 @@ export function AccountDashboard({
   );
 
   return (
-    <div className="flex flex-col gap-8 md:flex-row md:gap-10">
-      {/* Side nav: horizontal scroll on mobile, a column on desktop. */}
-      <aside className="shrink-0 md:w-52 lg:w-56">
+    <div>
+      {impersonating && (
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/40 bg-primary/10 px-4 py-3">
+          <p className="text-sm text-white">
+            <span className="text-white/60">Viewing as</span>{" "}
+            <span className="font-semibold">{impersonating.name}</span>{" "}
+            <span className="text-white/40">· admin</span>
+          </p>
+          <a
+            href="/account"
+            className="rounded-md border border-white/15 px-3 py-1.5 text-sm text-white/80 transition-colors hover:border-white/30 hover:text-white"
+          >
+            Exit
+          </a>
+        </div>
+      )}
+
+      <div className="flex flex-col gap-8 md:flex-row md:gap-10">
+        {/* Side nav: horizontal scroll on mobile, a column on desktop. */}
+        <aside className="shrink-0 md:w-52 lg:w-56">
         <nav className="no-scrollbar -mx-1 flex gap-1 overflow-x-auto px-1 md:mx-0 md:flex-col md:overflow-visible md:px-0">
           {items.map((item) => {
             const Icon = item.icon;
@@ -114,15 +136,16 @@ export function AccountDashboard({
           />
         )}
         {active === "sites" && <AdminSites />}
-        {active === "edit" && <ContentEditor />}
-        {active === "content" && <ContentRequests />}
+        {active === "edit" && <ContentEditor clientId={clientId} />}
+        {active === "content" && <ContentRequests clientId={clientId} />}
         {active === "analytics" && <AnalyticsPlaceholder />}
         {active === "billing" && (
           <SubscriptionSection subscriptions={subscriptions} hasSubscriptions={hasSubscriptions} />
         )}
         {active === "settings" && <AccountSettings />}
         {active === "support" && <ContactSupport />}
-      </section>
+        </section>
+      </div>
     </div>
   );
 }

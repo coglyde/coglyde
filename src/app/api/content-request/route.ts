@@ -1,11 +1,14 @@
-import { currentUser } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
-import { getClientRepo } from "@/lib/client-repo";
+import { resolveSubject } from "@/lib/site-content-access";
 import { createContentRequestIssue, listContentRequests } from "@/lib/github-app";
 import { notifyTeam } from "@/lib/notify";
 
 // Node runtime: github-app.ts signs a JWT with node:crypto.
 export const runtime = "nodejs";
+
+function clientIdFrom(req: NextRequest): string | null {
+  return new URL(req.url).searchParams.get("clientId");
+}
 
 // Derive a short issue title from the first line of the request.
 function titleFromMessage(message: string): string {
@@ -14,21 +17,13 @@ function titleFromMessage(message: string): string {
   return firstLine.length > 70 ? `${firstLine.slice(0, 67)}...` : firstLine;
 }
 
-// File a content request: a client describes a change in the dashboard, we open
-// a labeled GitHub issue on their site repo. The content agent picks it up.
+// File a content request: a client (or an admin viewing as them) describes a
+// change, we open a labeled GitHub issue on the site repo. The agent picks it up.
 export async function POST(req: NextRequest) {
   try {
-    const user = await currentUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const repo = getClientRepo(user);
-    if (!repo) {
-      return NextResponse.json(
-        { error: "No site is linked to your account yet." },
-        { status: 400 },
-      );
+    const access = await resolveSubject(clientIdFrom(req));
+    if ("error" in access) {
+      return NextResponse.json({ error: access.error }, { status: access.status });
     }
 
     const { message } = await req.json();
@@ -39,13 +34,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const email = user.emailAddresses[0]?.emailAddress ?? "unknown";
-    const name = [user.firstName, user.lastName].filter(Boolean).join(" ") || email;
+    const email = access.requester.emailAddresses[0]?.emailAddress ?? "unknown";
+    const name =
+      [access.requester.firstName, access.requester.lastName].filter(Boolean).join(" ") || email;
     const title = titleFromMessage(message);
     const body = `${message.trim()}\n\n---\nRequested by ${name} (${email}) via the Coglyde dashboard.`;
 
-    const issue = await createContentRequestIssue(repo, title, body);
-    await notifyTeam(`New content request on ${repo} #${issue.number}: ${title}`);
+    const issue = await createContentRequestIssue(access.repo, title, body);
+    await notifyTeam(`New content request on ${access.repo} #${issue.number}: ${title}`);
 
     return NextResponse.json({ ok: true, number: issue.number, url: issue.url, title });
   } catch (error) {
@@ -57,18 +53,13 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// List the client's past requests with their current status.
-export async function GET() {
+// List past requests with their current status (empty if no site is linked).
+export async function GET(req: NextRequest) {
   try {
-    const user = await currentUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const access = await resolveSubject(clientIdFrom(req));
+    if ("error" in access) return NextResponse.json({ requests: [] });
 
-    const repo = getClientRepo(user);
-    if (!repo) return NextResponse.json({ requests: [] });
-
-    const requests = await listContentRequests(repo);
+    const requests = await listContentRequests(access.repo);
     return NextResponse.json({ requests });
   } catch (error) {
     console.error("content-request GET error:", error);

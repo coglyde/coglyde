@@ -28,16 +28,18 @@ function formatDate(iso: string): string {
   });
 }
 
-export function ContentRequests() {
+export function ContentRequests({ clientId }: { clientId?: string }) {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<Status>("idle");
   const [requests, setRequests] = useState<Request[]>([]);
   const [loadingList, setLoadingList] = useState(true);
 
+  const apiUrl = `/api/content-request${clientId ? `?clientId=${clientId}` : ""}`;
+
   const loadRequests = useCallback(async () => {
     try {
-      const res = await fetch("/api/content-request");
+      const res = await fetch(apiUrl);
       if (res.ok) {
         const data = (await res.json()) as { requests?: Request[] };
         setRequests(data.requests ?? []);
@@ -47,7 +49,7 @@ export function ContentRequests() {
     } finally {
       setLoadingList(false);
     }
-  }, []);
+  }, [apiUrl]);
 
   useEffect(() => {
     void (async () => {
@@ -62,7 +64,7 @@ export function ContentRequests() {
     setStatus("idle");
 
     try {
-      const res = await fetch("/api/content-request", {
+      const res = await fetch(apiUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message }),
