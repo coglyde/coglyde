@@ -1,15 +1,18 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { ArrowLeft, Plus, Trash2 } from "lucide-react";
 import { GlowingButton } from "@/components/ui/GlowingButton";
 import type { ContentField, ContentItem, ContentSchema } from "@/lib/site-content";
 
 type Status = "idle" | "success" | "error";
 
 const inputClass =
-  "h-9 w-full rounded-md border border-white/15 bg-white/[0.05] px-3 text-sm text-white placeholder:text-white/30 transition-colors focus:border-primary/60 focus:outline-none";
+  "h-10 w-full rounded-lg border border-white/15 bg-white/[0.05] px-3.5 text-sm text-white placeholder:text-white/30 transition-colors focus:border-primary/60 focus:outline-none";
 
-/** Normalize a loaded row so every field has an editable value present. */
+// Pick a human label for an item card from its most "headline" field.
+const HEADLINE_KEYS = ["title", "name", "event", "label", "year"];
+
 function normalize(schema: ContentSchema, raw: unknown): ContentItem {
   const rec = (typeof raw === "object" && raw !== null ? raw : {}) as Record<string, unknown>;
   const item: ContentItem = {};
@@ -27,10 +30,17 @@ function blank(schema: ContentSchema): ContentItem {
   return item;
 }
 
-/** Direct editor for one content type (schema comes from the site's own
- *  _schema.json). Loads the current list, edits rows, publishes to the repo.
- *  `clientId` is set when an admin edits a chosen client's site. */
-export function ContentTypeForm({ schema, clientId }: { schema: ContentSchema; clientId?: string }) {
+/** Focused editor for ONE content type: roomy fields, an item header per row,
+ *  and a single publish. `onBack` returns to the section picker. */
+export function ContentTypeForm({
+  schema,
+  clientId,
+  onBack,
+}: {
+  schema: ContentSchema;
+  clientId?: string;
+  onBack?: () => void;
+}) {
   const [items, setItems] = useState<ContentItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -116,15 +126,27 @@ export function ContentTypeForm({ schema, clientId }: { schema: ContentSchema; c
     }
   };
 
+  const headlineField =
+    schema.fields.find((f) => HEADLINE_KEYS.includes(f.key)) ??
+    schema.fields.find((f) => f.type !== "stringList");
+
+  const itemHeader = (item: ContentItem, i: number) => {
+    const raw = headlineField ? item[headlineField.key] : "";
+    const v = typeof raw === "string" ? raw.trim() : "";
+    return v || `${schema.itemNoun} ${i + 1}`;
+  };
+
   const renderField = (item: ContentItem, i: number, field: ContentField) => {
+    const label = (
+      <span className="text-xs font-medium uppercase tracking-wide text-white/45">{field.label}</span>
+    );
+
     if (field.type === "stringList") {
       const list = (item[field.key] as string[]) ?? [];
       return (
-        <div key={field.key} className="w-full">
-          <span className="text-xs font-medium uppercase tracking-wide text-white/45">
-            {field.label}
-          </span>
-          <div className="mt-1.5 space-y-2">
+        <div key={field.key} className="flex flex-col gap-1.5 sm:col-span-2">
+          {label}
+          <div className="space-y-2">
             {list.map((entry, j) => (
               <div key={j} className="flex items-center gap-2">
                 <input
@@ -135,19 +157,20 @@ export function ContentTypeForm({ schema, clientId }: { schema: ContentSchema; c
                 />
                 <button
                   type="button"
+                  aria-label="Remove entry"
                   onClick={() => removeListEntry(i, field.key, j)}
-                  className="shrink-0 rounded-md border border-white/10 px-2 py-1.5 text-xs text-white/50 transition-colors hover:border-red-500/40 hover:text-red-300"
+                  className="shrink-0 rounded-lg border border-white/10 p-2 text-white/45 transition-colors hover:border-red-500/40 hover:text-red-300"
                 >
-                  ✕
+                  <Trash2 className="h-4 w-4" />
                 </button>
               </div>
             ))}
             <button
               type="button"
               onClick={() => addListEntry(i, field.key)}
-              className="rounded-md border border-dashed border-white/15 px-2.5 py-1 text-xs text-white/55 transition-colors hover:border-white/30 hover:text-white"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-white/15 px-3 py-1.5 text-xs text-white/55 transition-colors hover:border-white/30 hover:text-white"
             >
-              + Add entry
+              <Plus className="h-3.5 w-3.5" /> Add entry
             </button>
           </div>
         </div>
@@ -156,17 +179,18 @@ export function ContentTypeForm({ schema, clientId }: { schema: ContentSchema; c
 
     const value = (item[field.key] as string) ?? "";
     return (
-      <label key={field.key} className="flex min-w-[8rem] flex-1 flex-col gap-1">
-        <span className="text-xs font-medium uppercase tracking-wide text-white/45">
-          {field.label}
-        </span>
+      <label
+        key={field.key}
+        className={`flex flex-col gap-1.5 ${field.type === "textarea" ? "sm:col-span-2" : ""}`}
+      >
+        {label}
         {field.type === "textarea" ? (
           <textarea
             value={value}
             onChange={(e) => setText(i, field.key, e.target.value)}
             placeholder={field.placeholder}
-            rows={2}
-            className={`${inputClass} h-auto resize-y py-2`}
+            rows={3}
+            className={`${inputClass} h-auto resize-y py-2.5`}
           />
         ) : (
           <input
@@ -185,43 +209,61 @@ export function ContentTypeForm({ schema, clientId }: { schema: ContentSchema; c
   const canRemove = items.length > (schema.min ?? 0);
 
   return (
-    <form onSubmit={handleSubmit} className="rounded-xl border border-white/10 bg-white/[0.03] p-5">
-      <h3 className="text-lg font-semibold text-white">{schema.label}</h3>
-      {schema.description && <p className="mt-1 text-sm text-white/55">{schema.description}</p>}
+    <form onSubmit={handleSubmit} className="space-y-5">
+      <div>
+        {onBack && (
+          <button
+            type="button"
+            onClick={onBack}
+            className="mb-4 inline-flex items-center gap-1.5 text-sm text-white/55 transition-colors hover:text-white"
+          >
+            <ArrowLeft className="h-4 w-4" /> All sections
+          </button>
+        )}
+        <h2 className="text-2xl font-semibold text-white">{schema.label}</h2>
+        {schema.description && <p className="mt-1 text-white/55">{schema.description}</p>}
+      </div>
 
       {loading ? (
-        <p className="mt-4 text-sm text-white/40">Loading...</p>
+        <p className="text-sm text-white/40">Loading...</p>
       ) : (
-        <div className="mt-4 space-y-3">
-          {items.map((item, i) => (
-            <div
-              key={i}
-              className="flex flex-wrap items-start gap-3 rounded-lg border border-white/10 bg-white/[0.02] p-3"
-            >
-              {schema.fields.map((field) => renderField(item, i, field))}
-              {canRemove && (
-                <button
-                  type="button"
-                  onClick={() => removeItem(i)}
-                  className="ml-auto shrink-0 rounded-md border border-white/10 px-2.5 py-1.5 text-xs text-white/50 transition-colors hover:border-red-500/40 hover:text-red-300"
-                >
-                  Remove {schema.itemNoun}
-                </button>
-              )}
-            </div>
-          ))}
+        <>
+          <div className="space-y-4">
+            {items.map((item, i) => (
+              <div key={i} className="rounded-xl border border-white/10 bg-white/[0.03] p-5">
+                <div className="mb-4 flex items-center justify-between gap-3">
+                  <span className="truncate text-sm font-semibold text-white/80">
+                    {itemHeader(item, i)}
+                  </span>
+                  {canRemove && (
+                    <button
+                      type="button"
+                      onClick={() => removeItem(i)}
+                      className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-white/10 px-2.5 py-1.5 text-xs text-white/50 transition-colors hover:border-red-500/40 hover:text-red-300"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" /> Remove
+                    </button>
+                  )}
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {schema.fields.map((field) => renderField(item, i, field))}
+                </div>
+              </div>
+            ))}
 
-          {canAdd && (
-            <button
-              type="button"
-              onClick={addItem}
-              className="rounded-md border border-dashed border-white/15 px-3 py-2 text-sm text-white/55 transition-colors hover:border-white/30 hover:text-white"
-            >
-              + Add {schema.itemNoun}
-            </button>
-          )}
+            {canAdd && (
+              <button
+                type="button"
+                onClick={addItem}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-white/15 px-4 py-3 text-sm text-white/55 transition-colors hover:border-white/30 hover:text-white"
+              >
+                <Plus className="h-4 w-4" /> Add {schema.itemNoun}
+              </button>
+            )}
+          </div>
 
-          <div className="flex flex-wrap items-center justify-end gap-3 pt-1">
+          {/* Single save bar, always visible while editing. */}
+          <div className="sticky bottom-4 z-10 flex flex-wrap items-center justify-end gap-3 rounded-xl border border-white/10 bg-[#0c0c10]/90 p-3 backdrop-blur">
             {status === "success" && (
               <span className="text-sm text-emerald-300">
                 Published. The site updates in about a minute.
@@ -232,7 +274,7 @@ export function ContentTypeForm({ schema, clientId }: { schema: ContentSchema; c
               {saving ? "Publishing..." : "Publish changes"}
             </GlowingButton>
           </div>
-        </div>
+        </>
       )}
     </form>
   );
