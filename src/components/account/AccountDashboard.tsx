@@ -62,8 +62,8 @@ export function AccountDashboard({
   const allItems: NavItem[] = [
     { id: "overview", label: "Overview", icon: LayoutDashboard },
     { id: "sites", label: "All sites", icon: Globe },
-    { id: "edit", label: "Edit content", icon: SquarePen },
-    { id: "content", label: "Site updates", icon: Sparkles },
+    { id: "edit", label: "Site updates", icon: SquarePen },
+    { id: "content", label: "Request changes", icon: Sparkles },
     { id: "analytics", label: "Analytics", icon: BarChart3 },
     { id: "billing", label: "Billing", icon: CreditCard },
     { id: "settings", label: "Settings", icon: SettingsIcon },

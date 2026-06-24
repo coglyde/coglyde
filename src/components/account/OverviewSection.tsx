@@ -4,6 +4,7 @@ import {
   ArrowUpRight,
   ExternalLink,
   Sparkles,
+  SquarePen,
   BarChart3,
   CreditCard,
   Globe,
@@ -109,7 +110,7 @@ export function OverviewSection({
                     onClick={() => onNavigate("content")}
                     className="inline-flex items-center rounded-lg px-4 py-2 text-sm font-medium text-white/55 transition-colors hover:text-white"
                   >
-                    Request an update
+                    Request a change
                   </button>
                 )}
               </div>
@@ -139,11 +140,19 @@ export function OverviewSection({
 
       {/* Entry cards into the other sections. */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {capabilities.editableContent.length > 0 && (
+          <NavCard
+            icon={SquarePen}
+            title="Site updates"
+            description="Edit your site content"
+            onClick={() => onNavigate("edit")}
+          />
+        )}
         {capabilities.siteUpdates && (
           <NavCard
             icon={Sparkles}
-            title="Site updates"
-            description="Request and track changes"
+            title="Request changes"
+            description="Ask our team for anything else"
             onClick={() => onNavigate("content")}
           />
         )}

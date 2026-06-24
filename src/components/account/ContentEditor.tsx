@@ -6,7 +6,7 @@ import type { ContentSchema } from "@/lib/site-content";
 import { ContentTypeForm } from "./ContentTypeForm";
 
 /**
- * "Edit content": first pick a section, then edit only that one. Keeps each
+ * "Site updates": first pick a section, then edit only that one. Keeps each
  * screen focused instead of showing every form at once. `clientId` is set when
  * an admin is editing a chosen client's site.
  */
@@ -40,7 +40,7 @@ export function ContentEditor({ clientId }: { clientId?: string }) {
   return (
     <div className="space-y-5">
       <div>
-        <h2 className="mb-2 text-2xl font-semibold text-white">Edit content</h2>
+        <h2 className="mb-2 text-2xl font-semibold text-white">Site updates</h2>
         <p className="text-white/60">
           Pick what you&apos;d like to update. Changes publish to the live site in
           about a minute.

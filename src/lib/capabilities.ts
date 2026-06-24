@@ -2,12 +2,13 @@ import type { User } from "@clerk/nextjs/server";
 import { getClientRepo } from "./client-repo";
 import type { PlanSummary } from "./stripe-customer";
 
-// Per-client feature gating. The marquee rule: "Site updates" (the AI-agent
-// change-request flow) is a perk of the Hosting + Maintenance retainer, so it
-// only lights up for clients on an active `hosting-maintenance` subscription.
-// Everything stays in Clerk privateMetadata (no DB). Manual overrides live under
-// `features`, and the direct form editors a client may use live under
-// `editableContent` (you enable specific ones per client):
+// Per-client feature gating. The marquee rule: "Request changes" (the AI-agent
+// change-request flow, capability key `siteUpdates`) is a perk of the Hosting +
+// Maintenance retainer, so it only lights up for clients on an active
+// `hosting-maintenance` subscription. The direct "Site updates" form editors a
+// client may use live under `editableContent` (you enable specific ones per
+// client). Everything stays in Clerk privateMetadata (no DB); manual overrides
+// live under `features`:
 //
 //   privateMetadata: {
 //     contentRepo: "coglyde/talaba-racing",            // where edits commit

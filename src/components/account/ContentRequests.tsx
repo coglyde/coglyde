@@ -99,10 +99,10 @@ export function ContentRequests({ clientId }: { clientId?: string }) {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="mb-2 text-2xl font-semibold text-white">Site updates</h2>
+        <h2 className="mb-2 text-2xl font-semibold text-white">Request changes</h2>
         <p className="text-white/60">
-          Describe any change to your site in plain English. Our team ships it and
-          you can track it below.
+          Need something we don&apos;t yet have a form for? Describe any change to
+          your site in plain English. Our team ships it and you can track it below.
         </p>
       </div>
 
@@ -110,14 +110,14 @@ export function ContentRequests({ clientId }: { clientId?: string }) {
         <textarea
           value={message}
           onChange={(e) => setMessage(e.target.value)}
-          placeholder="e.g. Add a new event: Summer Session, July 25 at Platform 9, with this poster. Or: mark the hoodie as sold out."
+          placeholder="e.g. Update the homepage headline to read 'Now booking 2026'. Or: swap the hero photo for the one I'll email you."
           required
           rows={5}
           className="w-full resize-none rounded-lg border border-white/15 bg-white/[0.05] px-4 py-2.5 text-white placeholder:text-white/40 transition-colors focus:border-primary/60 focus:outline-none"
         />
         <div className="flex items-center justify-end">
           <GlowingButton type="submit" disabled={loading || !message.trim()}>
-            {loading ? "Sending..." : "Request update"}
+            {loading ? "Sending..." : "Request a change"}
           </GlowingButton>
         </div>
 
