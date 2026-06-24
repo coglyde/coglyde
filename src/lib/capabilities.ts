@@ -1,16 +1,19 @@
 import type { User } from "@clerk/nextjs/server";
 import { getClientRepo } from "./client-repo";
+import { SITE_CONTENT_SCHEMAS } from "./site-content";
 import type { PlanSummary } from "./stripe-customer";
 
 // Per-client feature gating. The marquee rule: "Site updates" (the AI-agent
 // change-request flow) is a perk of the Hosting + Maintenance retainer, so it
 // only lights up for clients on an active `hosting-maintenance` subscription.
 // Everything stays in Clerk privateMetadata (no DB). Manual overrides live under
-// `features` for testing or comped clients:
+// `features`, and the direct form editors a client may use live under
+// `editableContent` (you enable specific ones per client):
 //
 //   privateMetadata: {
-//     contentRepo: "coglyde/nopointmusic",          // where requests are filed
-//     features: { siteUpdates: true, analytics: true }, // manual overrides
+//     contentRepo: "coglyde/talaba-racing",            // where edits commit
+//     features: { siteUpdates: true, analytics: true },// manual overrides
+//     editableContent: ["stats"],                      // direct form editors
 //   }
 
 const SITE_UPDATES_PLAN = "hosting-maintenance";
@@ -25,7 +28,21 @@ function hasSiteUpdatesPlan(subscriptions: PlanSummary[]): boolean {
 export type Capabilities = {
   siteUpdates: boolean;
   analytics: boolean;
+  /** Content types this client may edit directly via dashboard forms. */
+  editableContent: string[];
 };
+
+// Which direct editors a client may use: the enabled keys, filtered to ones we
+// actually have a schema for, and only when a repo is linked to commit to.
+// Used by the dashboard (to show editors) and the API (to authorize a save).
+export function getEditableContentTypes(user: User | null): string[] {
+  if (getClientRepo(user) === null) return [];
+  const meta = user?.privateMetadata as { editableContent?: unknown } | undefined;
+  const list = Array.isArray(meta?.editableContent) ? meta.editableContent : [];
+  return list.filter(
+    (type): type is string => typeof type === "string" && type in SITE_CONTENT_SCHEMAS,
+  );
+}
 
 export function getCapabilities(
   user: User | null,
@@ -43,5 +60,6 @@ export function getCapabilities(
   return {
     siteUpdates: entitled && getClientRepo(user) !== null,
     analytics: meta?.features?.analytics === true,
+    editableContent: getEditableContentTypes(user),
   };
 }

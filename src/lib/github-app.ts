@@ -134,3 +134,42 @@ export async function listContentRequests(repo: string): Promise<ContentRequest[
       createdAt: issue.created_at,
     }));
 }
+
+// --- Contents API: direct, structured edits (no agent) -------------------
+// These power the dashboard's form editors. The App needs the "Contents: read
+// and write" repository permission (in addition to Issues) for these to work.
+
+export type RepoFile = { json: unknown; sha: string };
+
+/** Read + parse a JSON file from a client repo's default branch. Returns null
+ *  if the file does not exist yet. */
+export async function getRepoFile(repo: string, path: string): Promise<RepoFile | null> {
+  const res = await gh(`/repos/${repo}/contents/${path}`);
+  if (res.status === 404) return null;
+  if (!res.ok) {
+    throw new Error(`GitHub get contents failed: ${res.status} ${await res.text()}`);
+  }
+  const data = (await res.json()) as { content: string; sha: string };
+  const text = Buffer.from(data.content, "base64").toString("utf8");
+  return { json: JSON.parse(text), sha: data.sha };
+}
+
+/** Commit a JSON value to a file on a client repo's default branch. Pass the
+ *  current `sha` to update an existing file; omit it to create a new one.
+ *  Commits straight to the default branch, so the change publishes on rebuild. */
+export async function putRepoFile(
+  repo: string,
+  path: string,
+  value: unknown,
+  message: string,
+  sha?: string,
+): Promise<void> {
+  const content = Buffer.from(`${JSON.stringify(value, null, 2)}\n`).toString("base64");
+  const res = await gh(`/repos/${repo}/contents/${path}`, {
+    method: "PUT",
+    body: JSON.stringify({ message, content, ...(sha ? { sha } : {}) }),
+  });
+  if (!res.ok) {
+    throw new Error(`GitHub put contents failed: ${res.status} ${await res.text()}`);
+  }
+}
