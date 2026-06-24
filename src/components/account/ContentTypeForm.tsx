@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { ArrowLeft, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, ChevronDown, Plus, Trash2 } from "lucide-react";
 import { GlowingButton } from "@/components/ui/GlowingButton";
 import type { ContentField, ContentItem, ContentSchema } from "@/lib/site-content";
 
@@ -9,6 +9,9 @@ type Status = "idle" | "success" | "error";
 
 const inputClass =
   "h-10 w-full rounded-lg border border-white/15 bg-white/[0.05] px-3.5 text-sm text-white placeholder:text-white/30 transition-colors focus:border-primary/60 focus:outline-none";
+
+// Lists of this length or shorter open fully; longer ones collapse by default.
+const EXPAND_ALL_UP_TO = 4;
 
 // Pick a human label for an item card from its most "headline" field.
 const HEADLINE_KEYS = ["title", "name", "event", "label", "year"];
@@ -30,8 +33,8 @@ function blank(schema: ContentSchema): ContentItem {
   return item;
 }
 
-/** Focused editor for ONE content type: roomy fields, an item header per row,
- *  and a single publish. `onBack` returns to the section picker. */
+/** Focused editor for ONE content type. Add is at the top, existing entries are
+ *  collapsible (header only) to stay scannable, and there's a single save. */
 export function ContentTypeForm({
   schema,
   clientId,
@@ -42,6 +45,7 @@ export function ContentTypeForm({
   onBack?: () => void;
 }) {
   const [items, setItems] = useState<ContentItem[]>([]);
+  const [open, setOpen] = useState<boolean[]>([]); // parallel to items
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState<Status>("idle");
@@ -54,7 +58,9 @@ export function ContentTypeForm({
       const res = await fetch(url);
       if (res.ok) {
         const data = (await res.json()) as { items?: unknown[] };
-        setItems((data.items ?? []).map((it) => normalize(schema, it)));
+        const loaded = (data.items ?? []).map((it) => normalize(schema, it));
+        setItems(loaded);
+        setOpen(loaded.map(() => loaded.length <= EXPAND_ALL_UP_TO));
       }
     } catch {
       // a failed load leaves an empty editor; saving still works
@@ -96,8 +102,16 @@ export function ContentTypeForm({
       ),
     );
 
-  const addItem = () => setItems((prev) => [...prev, blank(schema)]);
-  const removeItem = (i: number) => setItems((prev) => prev.filter((_, idx) => idx !== i));
+  // New entries go to the top, opened, so they appear right under the Add button.
+  const addItem = () => {
+    setItems((prev) => [blank(schema), ...prev]);
+    setOpen((prev) => [true, ...prev]);
+  };
+  const removeItem = (i: number) => {
+    setItems((prev) => prev.filter((_, idx) => idx !== i));
+    setOpen((prev) => prev.filter((_, idx) => idx !== i));
+  };
+  const toggle = (i: number) => setOpen((prev) => prev.map((o, idx) => (idx === i ? !o : o)));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -130,10 +144,10 @@ export function ContentTypeForm({
     schema.fields.find((f) => HEADLINE_KEYS.includes(f.key)) ??
     schema.fields.find((f) => f.type !== "stringList");
 
-  const itemHeader = (item: ContentItem, i: number) => {
+  const itemHeader = (item: ContentItem) => {
     const raw = headlineField ? item[headlineField.key] : "";
     const v = typeof raw === "string" ? raw.trim() : "";
-    return v || `${schema.itemNoun} ${i + 1}`;
+    return v || `New ${schema.itemNoun}`;
   };
 
   const renderField = (item: ContentItem, i: number, field: ContentField) => {
@@ -228,13 +242,32 @@ export function ContentTypeForm({
         <p className="text-sm text-white/40">Loading...</p>
       ) : (
         <>
-          <div className="space-y-4">
+          {canAdd && (
+            <button
+              type="button"
+              onClick={addItem}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-white/20 px-4 py-3 text-sm font-medium text-white/70 transition-colors hover:border-primary/60 hover:text-white"
+            >
+              <Plus className="h-4 w-4" /> Add {schema.itemNoun}
+            </button>
+          )}
+
+          <div className="space-y-3">
             {items.map((item, i) => (
-              <div key={i} className="rounded-xl border border-white/10 bg-white/[0.03] p-5">
-                <div className="mb-4 flex items-center justify-between gap-3">
-                  <span className="truncate text-sm font-semibold text-white/80">
-                    {itemHeader(item, i)}
-                  </span>
+              <div key={i} className="overflow-hidden rounded-xl border border-white/10 bg-white/[0.03]">
+                <div className="flex items-center justify-between gap-3 p-4">
+                  <button
+                    type="button"
+                    onClick={() => toggle(i)}
+                    className="flex min-w-0 flex-1 items-center gap-2.5 text-left"
+                  >
+                    <ChevronDown
+                      className={`h-4 w-4 shrink-0 text-white/40 transition-transform ${open[i] ? "" : "-rotate-90"}`}
+                    />
+                    <span className="truncate text-sm font-semibold text-white/80">
+                      {itemHeader(item)}
+                    </span>
+                  </button>
                   {canRemove && (
                     <button
                       type="button"
@@ -245,24 +278,25 @@ export function ContentTypeForm({
                     </button>
                   )}
                 </div>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  {schema.fields.map((field) => renderField(item, i, field))}
-                </div>
+
+                {open[i] && (
+                  <div className="border-t border-white/10 p-5">
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      {schema.fields.map((field) => renderField(item, i, field))}
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
 
-            {canAdd && (
-              <button
-                type="button"
-                onClick={addItem}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-white/15 px-4 py-3 text-sm text-white/55 transition-colors hover:border-white/30 hover:text-white"
-              >
-                <Plus className="h-4 w-4" /> Add {schema.itemNoun}
-              </button>
+            {items.length === 0 && (
+              <p className="rounded-xl border border-dashed border-white/10 p-6 text-center text-sm text-white/40">
+                Nothing here yet. Use &ldquo;Add {schema.itemNoun}&rdquo; above.
+              </p>
             )}
           </div>
 
-          {/* Single save bar, always visible while editing. */}
+          {/* Single save bar, pinned while editing. */}
           <div className="sticky bottom-4 z-10 flex flex-wrap items-center justify-end gap-3 rounded-xl border border-white/10 bg-[#0c0c10]/90 p-3 backdrop-blur">
             {status === "success" && (
               <span className="text-sm text-emerald-300">
