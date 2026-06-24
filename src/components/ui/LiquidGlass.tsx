@@ -159,8 +159,18 @@ export function LiquidGlass({
   const refract = displace > 0 && size !== null;
   const fallbackFilter = `blur(${blur}px) saturate(${saturation}%)`;
 
+  // Default to a positioning context (so absolute children and the filter svg
+  // anchor here), but yield to a position utility in `className` — otherwise an
+  // inline `position: relative` would override e.g. `absolute`/`fixed` on a
+  // dropdown and drop it into normal flow instead of letting it float.
+  const setsOwnPosition =
+    className != null &&
+    /(?:^|\s)(?:[\w-]+:)*(?:absolute|fixed|sticky|relative|static)(?:\s|$)/.test(
+      className,
+    );
+
   const surfaceStyle: CSSProperties = {
-    position: "relative",
+    ...(setsOwnPosition ? {} : { position: "relative" }),
     borderRadius: typeof radius === "number" ? `${radius}px` : radius,
     backgroundColor: `color-mix(in srgb, ${tint} ${clampPct(tintOpacity)}%, transparent)`,
     backdropFilter: refract
