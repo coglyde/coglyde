@@ -3,6 +3,7 @@
 import { useState } from "react";
 import {
   LayoutDashboard,
+  Globe,
   SquarePen,
   Sparkles,
   BarChart3,
@@ -13,6 +14,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { OverviewSection } from "./OverviewSection";
+import { AdminSites } from "./AdminSites";
 import { ContentEditor } from "./ContentEditor";
 import { ContentRequests } from "./ContentRequests";
 import { AnalyticsPlaceholder } from "./AnalyticsPlaceholder";
@@ -25,6 +27,7 @@ import type { ClientSite } from "@/lib/client-site";
 
 export type SectionId =
   | "overview"
+  | "sites"
   | "edit"
   | "content"
   | "analytics"
@@ -39,6 +42,7 @@ type Props = {
   capabilities: Capabilities;
   userName: string;
   site: ClientSite;
+  isAdmin: boolean;
 };
 
 export function AccountDashboard({
@@ -47,10 +51,12 @@ export function AccountDashboard({
   capabilities,
   userName,
   site,
+  isAdmin,
 }: Props) {
   const canEdit = capabilities.editableContent.length > 0;
   const allItems: NavItem[] = [
     { id: "overview", label: "Overview", icon: LayoutDashboard },
+    { id: "sites", label: "All sites", icon: Globe },
     { id: "edit", label: "Edit content", icon: SquarePen },
     { id: "content", label: "Site updates", icon: Sparkles },
     { id: "analytics", label: "Analytics", icon: BarChart3 },
@@ -58,14 +64,15 @@ export function AccountDashboard({
     { id: "settings", label: "Settings", icon: SettingsIcon },
     { id: "support", label: "Support", icon: LifeBuoy },
   ];
-  // Gate direct editors and the AI request flow on their respective access.
+  // Gate the admin view, direct editors, and the AI request flow on access.
   const items = allItems.filter((item) => {
+    if (item.id === "sites") return isAdmin;
     if (item.id === "edit") return canEdit;
     if (item.id === "content") return capabilities.siteUpdates;
     return true;
   });
   const [active, setActive] = useState<SectionId>(
-    canEdit ? "edit" : capabilities.siteUpdates ? "content" : "overview",
+    isAdmin ? "sites" : canEdit ? "edit" : capabilities.siteUpdates ? "content" : "overview",
   );
 
   return (
@@ -106,6 +113,7 @@ export function AccountDashboard({
             onNavigate={setActive}
           />
         )}
+        {active === "sites" && <AdminSites />}
         {active === "edit" && <ContentEditor types={capabilities.editableContent} />}
         {active === "content" && <ContentRequests />}
         {active === "analytics" && <AnalyticsPlaceholder />}

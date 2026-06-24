@@ -7,6 +7,7 @@ import { AccountDashboard } from "@/components/account/AccountDashboard";
 import { getSubscriptionSummary } from "@/lib/stripe-customer";
 import { getCapabilities } from "@/lib/capabilities";
 import { getClientSite } from "@/lib/client-site";
+import { isAdmin } from "@/lib/admin";
 
 export const metadata: Metadata = {
   title: "Your account | Coglyde",
@@ -32,6 +33,7 @@ export default async function AccountPage() {
           capabilities={capabilities}
           userName={userName}
           site={site}
+          isAdmin={isAdmin(user)}
         />
       </main>
       <Footer />
