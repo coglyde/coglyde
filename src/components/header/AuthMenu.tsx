@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useAuth, useUser } from "@clerk/nextjs";
 import { useState, useRef, useEffect } from "react";
 import { SignOutButton } from "@clerk/nextjs";
+import { LiquidGlass } from "../ui/LiquidGlass";
 
 export function AuthMenu() {
   const { isLoaded, isSignedIn } = useAuth();
@@ -71,7 +72,18 @@ export function AuthMenu() {
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-2 w-48 rounded-xl border border-white/15 bg-gradient-to-b from-white/[0.12] to-white/[0.06] backdrop-blur-xl shadow-xl animate-in fade-in duration-200">
+        <LiquidGlass
+          radius={12}
+          blur={30}
+          saturation={100}
+          displace={6}
+          tint="#0b0d12"
+          tintOpacity={82}
+          lightReflex={0.5}
+          shadowReflex={1.6}
+          shadow="0 24px 60px -16px rgba(0,0,0,0.85)"
+          className="absolute right-0 mt-2 w-48 overflow-hidden animate-in fade-in duration-200"
+        >
           <div className="px-4 py-3 border-b border-white/10">
             <p className="text-[0.85rem] font-medium text-white">{user?.firstName} {user?.lastName}</p>
             <p className="text-[0.75rem] text-white/60 truncate">{user?.emailAddresses[0]?.emailAddress}</p>
@@ -90,7 +102,7 @@ export function AuthMenu() {
               </button>
             </SignOutButton>
           </div>
-        </div>
+        </LiquidGlass>
       )}
     </div>
   );

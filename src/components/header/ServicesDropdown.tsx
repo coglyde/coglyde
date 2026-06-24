@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { LiquidGlass } from "../ui/LiquidGlass";
 
 type Service = {
   title: string;
@@ -167,7 +168,20 @@ export function ServicesDropdown() {
         role="menu"
         className="invisible absolute left-1/2 top-full z-50 -translate-x-1/2 translate-y-1 pt-4 opacity-0 transition-[opacity,transform,visibility] duration-200 ease-out group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:visible group-focus-within:translate-y-0 group-focus-within:opacity-100"
       >
-        <div className="relative w-[24rem] rounded-2xl bg-[#0a0a0c] p-2 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.95),0_0_0_1px_rgba(255,255,255,0.06)_inset]">
+        <LiquidGlass
+          radius={16}
+          blur={30}
+          saturation={100}
+          displace={6}
+          tint="#0b0d12"
+          tintOpacity={82}
+          lightColor="#ffffff"
+          shadowColor="#000000"
+          lightReflex={0.5}
+          shadowReflex={1.6}
+          shadow="0 30px 80px -20px rgba(0,0,0,0.9)"
+          className="relative w-[24rem] p-2"
+        >
           {/* Subtle gradient outer ring (sharper than a plain border). */}
           <span
             aria-hidden
@@ -225,7 +239,7 @@ export function ServicesDropdown() {
               );
             })}
           </div>
-        </div>
+        </LiquidGlass>
       </div>
     </div>
   );

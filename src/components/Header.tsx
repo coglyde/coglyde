@@ -1,8 +1,9 @@
 import Image from "next/image";
 import Link from "next/link";
 import { BOOKING_URL } from "@/lib/links";
+import { LiquidGlass } from "./ui/LiquidGlass";
 import { AuthMenu } from "./header/AuthMenu";
-import { MobileMenu } from "./header/MobileMenu";
+import { MobileNav } from "./header/MobileNav";
 import { ServicesDropdown } from "./header/ServicesDropdown";
 
 const navLinks = [
@@ -14,10 +15,23 @@ const navLinks = [
 export function Header() {
   return (
     <header className="pointer-events-none fixed inset-x-0 top-4 z-50 flex justify-center px-4 sm:top-6 sm:px-6 lg:px-10">
-      <div className="pointer-events-auto flex w-full max-w-7xl items-center justify-between gap-4 rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.08] to-white/[0.02] px-4 py-2.5 shadow-2xl backdrop-blur-xl sm:px-6 lg:grid lg:grid-cols-[1fr_auto_1fr] lg:px-8 lg:py-3.5">
+      {/* Desktop bar */}
+      <LiquidGlass
+        radius={16}
+        blur={14}
+        saturation={85}
+        displace={8}
+        tint="#bbbbbc"
+        tintOpacity={10}
+        lightColor="#ffffff"
+        shadowColor="#000000"
+        lightReflex={0.45}
+        shadowReflex={2}
+        className="pointer-events-auto hidden w-full max-w-7xl items-center gap-4 px-8 py-3.5 lg:grid lg:grid-cols-[1fr_auto_1fr]"
+      >
         <Link
           href="/"
-          className="flex shrink-0 items-center lg:justify-self-start"
+          className="flex shrink-0 items-center justify-self-start"
           aria-label="Coglyde home"
         >
           <Image
@@ -26,11 +40,11 @@ export function Header() {
             width={430}
             height={125}
             priority
-            className="h-7 w-auto sm:h-8"
+            className="h-8 w-auto"
           />
         </Link>
 
-        <nav className="hidden items-center gap-8 justify-self-center text-[0.84rem] font-light tracking-[0.03em] text-white/70 lg:flex">
+        <nav className="flex items-center gap-8 justify-self-center text-[0.84rem] font-light tracking-[0.03em] text-white/70">
           <ServicesDropdown />
           {navLinks.map((link) => (
             <a
@@ -43,7 +57,7 @@ export function Header() {
           ))}
         </nav>
 
-        <div className="hidden items-center gap-6 justify-self-end lg:flex">
+        <div className="flex items-center gap-6 justify-self-end">
           <AuthMenu />
           <a
             href={BOOKING_URL}
@@ -60,9 +74,10 @@ export function Header() {
             </span>
           </a>
         </div>
+      </LiquidGlass>
 
-        <MobileMenu />
-      </div>
+      {/* Mobile morphing nav */}
+      <MobileNav />
     </header>
   );
 }
