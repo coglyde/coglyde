@@ -1,0 +1,8 @@
+{
+  "models": ["gpt-5.4-mini", "claude-sonnet-4.6"],
+  "providers": ["openai", "anthropic"],
+  "trustedOnly": true,
+  "strategy": "lowest_cost",
+  "markupBps": 2000,
+  "requestCapMicroUsd": 50000
+}

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getStripe } from "@/lib/stripe";
+import { processGatewayPayment } from "@/lib/gateway/stripe";
 import { handleStripeEvent } from "@/lib/stripe-events";
 
 // Stripe signature verification needs the raw request body and Node crypto.
@@ -35,6 +36,13 @@ export async function POST(request: Request) {
       { error: "invalid_signature", message },
       { status: 400 },
     );
+  }
+
+  try {
+    if (await processGatewayPayment(event)) return NextResponse.json({ received: true });
+  } catch {
+    // Credit fulfillment must be retried by Stripe if the ledger is unavailable.
+    return NextResponse.json({ error: "credit_fulfillment_pending" }, { status: 503 });
   }
 
   try {
