@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "seed:stripe": "tsx scripts/seed-stripe.ts"
+    "seed:stripe": "tsx scripts/seed-stripe.ts",
+    "gateway:admin": "tsx scripts/gateway/admin.ts",
+    "test:gateway": "tsx --test scripts/gateway/gateway.test.ts"
   },
   "dependencies": {
     "@clerk/nextjs": "^7.4.2",
@@ -21,6 +23,7 @@
     "marked": "^18.0.4",
     "next": "16.2.4",
     "ogl": "^1.0.11",
+    "postgres": "^4.1.1",
     "prop-types": "^15.8.1",
     "radix-ui": "^1.5.0",
     "react": "19.2.4",
@@ -28,7 +31,8 @@
     "resend": "^6.12.4",
     "stripe": "^22.1.1",
     "tailwind-merge": "^3.6.0",
-    "three": "^0.184.0"
+    "three": "^0.184.0",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
