@@ -7,6 +7,22 @@ export const policySchema = z.strictObject({
   trustedOnly: z.boolean(),
   strategy: z.enum(["lowest_cost", "largest_discount"]),
   listDiscountBps: z.int().min(0).max(10000).optional(),
+  // Only provision against an upstream allocation that cannot spend purchased credit.
+  creditGrants: z
+    .array(
+      z
+        .strictObject({
+          provider: z.enum(["openai", "anthropic"]),
+          startsAt: z.iso.datetime(),
+          expiresAt: z.iso.datetime(),
+          allocationMicro: z.int().positive().max(1_000_000_000),
+          coverage: z.literal("provider_reserved_promo_only"),
+        })
+        .refine((g) => Date.parse(g.startsAt) < Date.parse(g.expiresAt)),
+    )
+    .max(2)
+    .refine((gs) => new Set(gs.map((g) => g.provider)).size === gs.length)
+    .optional(),
   markupBps: z.int().min(0).max(10000),
   requestCapMicroUsd: z.int().positive().max(100_000_000),
 });

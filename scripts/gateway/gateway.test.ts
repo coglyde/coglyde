@@ -5,6 +5,7 @@ import { readFile } from "node:fs/promises";
 import type Stripe from "stripe";
 import { POST } from "../../src/app/api/gateway/v1/chat/completions/route";
 import { GET } from "../../src/app/api/gateway/v1/usage/route";
+import { creditCandidates } from "../../src/lib/gateway/credits";
 import { chooseRoute } from "../../src/lib/gateway/market";
 import {
   chatSchema,
@@ -291,6 +292,106 @@ test(
     assert.equal(settled.billing.charge_micro, 960);
     assert.equal(settled.billing.status, "settled");
     assert.equal(settled.billing.savings_micro, 240);
+    const grants = (["openai", "anthropic"] as const).map((provider) => ({
+      provider,
+      startsAt: new Date(Date.now() - 60_000).toISOString(),
+      expiresAt: new Date(Date.now() + 86_400_000).toISOString(),
+      allocationMicro: 10_000_000,
+      coverage: "provider_reserved_promo_only" as const,
+    }));
+    const creditPolicy = {
+      ...policy,
+      listDiscountBps: 2000,
+      creditGrants: grants,
+    };
+    process.env["GATEWAY_OPENAI_KEY_" + client] = "test-openai";
+    process.env["GATEWAY_ANTHROPIC_KEY_" + client] = "test-claude";
+    assert.equal(
+      creditCandidates(client, { ...creditPolicy, creditGrants: [] }, chat)
+        .length,
+      0,
+    );
+    assert.equal(
+      creditCandidates(client, creditPolicy, chat, Date.now() + 90_000_000)
+        .length,
+      0,
+    );
+    assert.equal(
+      creditCandidates(client, { ...creditPolicy, providers: ["other"] }, chat)
+        .length,
+      0,
+    );
+    await sql`UPDATE gateway_clients SET policy = ${sql.json(creditPolicy)} WHERE id = ${client}`;
+    await deposit(client, randomUUID(), 200_000);
+    const attempts: string[] = [];
+    let rejected = new Set<string>();
+    let ambiguous = false;
+    const previousFetch = globalThis.fetch;
+    t.mock.method(
+      globalThis,
+      "fetch",
+      async (url: string, init?: RequestInit) => {
+        const host = new URL(url).hostname;
+        if (!["api.openai.com", "api.anthropic.com"].includes(host))
+          return previousFetch(url, init);
+        attempts.push(host);
+        if (ambiguous) throw Error("Network timeout after sending");
+        if (rejected.has(host)) return new Response(null, { status: 429 });
+        const openai = host === "api.openai.com";
+        const body = JSON.parse(String(init?.body));
+        assert.equal(body.model, openai ? mini : "claude-sonnet-4-6");
+        assert.equal(body.provider, undefined);
+        assert.equal(
+          body[openai ? "max_completion_tokens" : "max_tokens"],
+          chat.max_tokens,
+        );
+        assert.equal(
+          new Headers(init?.headers).get("authorization"),
+          openai ? "Bearer test-openai" : "Bearer test-claude",
+        );
+        return Response.json({
+          choices: [
+            {
+              index: 0,
+              finish_reason: "stop",
+              message: { role: "assistant", content: "Hello!" },
+            },
+          ],
+          usage: {
+            prompt_tokens: 1000,
+            completion_tokens: 100,
+            ...(openai && { prompt_tokens_details: { cached_tokens: 0 } }),
+          },
+        });
+      },
+    );
+    const creditReceipt = await (await call()).json();
+    assert.equal(creditReceipt.billing.charge_micro, 960);
+    assert.deepEqual(attempts, ["api.openai.com"]);
+    rejected = new Set(["api.openai.com"]);
+    const claudeReceipt = await (await call()).json();
+    assert.equal(claudeReceipt.model, sonnet);
+    assert.equal(claudeReceipt.billing.charge_micro, 3600);
+    rejected.add("api.anthropic.com");
+    const fallback = await (await call()).json();
+    assert.equal(fallback.billing.charge_micro, 960);
+    const [switched] =
+      await sql`SELECT list_price FROM gateway_requests WHERE id = ${fallback.id}`;
+    assert.equal(switched.list_price.creditHold, undefined);
+    // The pending direct attempt consumes the last available allocation. A
+    // subsequent request can still complete through the marketplace.
+    const only = {
+      ...grants[0],
+      allocationMicro:
+        creditCandidates(client, creditPolicy, chat)[0].creditHold + 1201,
+    };
+    await sql`UPDATE gateway_clients SET policy = ${sql.json({ ...creditPolicy, creditGrants: [only] })} WHERE id = ${client}`;
+    ambiguous = true;
+    const before = attempts.length;
+    assert.equal((await call()).status, 503);
+    assert.equal(attempts.length, before + 1);
+    assert.equal((await (await call()).json()).billing.charge_micro, 960);
+    assert.equal(attempts.length, before + 1);
     const receipt = await GET(new Request("http://localhost/", { headers }));
     assert.equal(receipt.status, 200);
     assert.equal(
