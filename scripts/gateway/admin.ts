@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { db, digest, finish } from "../../src/lib/gateway/ledger";
-import { policySchema } from "../../src/lib/gateway/policy";
+import { meterSchema, policySchema } from "../../src/lib/gateway/policy";
 
 async function run() {
   const [action, id, argument] = process.argv.slice(2);
@@ -22,7 +22,20 @@ async function run() {
   if (action === "settle" || action === "release") {
     if (!id || (action === "settle" && !/^\d+$/.test(argument ?? "")))
       throw Error("Expected request UUID and settled cost in micro-USD");
-    await finish(id, action === "release" ? null : Number(argument));
+    const usagePath = process.argv[5];
+    const usage =
+      action === "settle" && usagePath
+        ? meterSchema.parse(JSON.parse(await readFile(usagePath, "utf8")))
+        : undefined;
+    const { charge } = await finish(
+      id,
+      action === "release" ? null : Number(argument),
+      usage,
+    );
+    if (charge === null)
+      throw Error(
+        "Cost recorded. Supply the verified usage JSON file to complete list-price settlement.",
+      );
     return;
   }
   if (!/^[A-Z][A-Z0-9_]{0,47}$/.test(id ?? ""))

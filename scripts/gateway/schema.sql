@@ -29,5 +29,6 @@ CREATE TABLE IF NOT EXISTS gateway_requests (
   status text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','settled','released')),
   UNIQUE(client_id, nonce)
 );
+ALTER TABLE gateway_requests ADD COLUMN IF NOT EXISTS list_price jsonb;
 CREATE INDEX IF NOT EXISTS gateway_history ON gateway_requests(client_id, created_at DESC);
 COMMIT;

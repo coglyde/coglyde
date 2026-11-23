@@ -1,6 +1,13 @@
 import { createHash, randomUUID } from "node:crypto";
 import postgres from "postgres";
-import { policySchema, type Policy, retail } from "./policy";
+import {
+  compareUsage,
+  directRate,
+  policySchema,
+  type Meter,
+  type Policy,
+  retail,
+} from "./policy";
 import type { Route } from "./market";
 
 let pool: ReturnType<typeof postgres> | undefined;
@@ -51,8 +58,8 @@ export async function reserve(
   const id = randomUUID();
   await db().begin(async (tx) => {
     const [entry] =
-      await tx`INSERT INTO gateway_requests (id,client_id,nonce,model,provider,hold_micro,markup_bps)
-      VALUES (${id},${client},${nonce},${route.model},${route.offer.provider_id},${policy.requestCapMicroUsd},${policy.markupBps})
+      await tx`INSERT INTO gateway_requests (id,client_id,nonce,model,provider,hold_micro,markup_bps,list_price)
+      VALUES (${id},${client},${nonce},${route.model},${route.offer.provider_id},${policy.requestCapMicroUsd},${policy.markupBps},${route.listPrice ? tx.json(route.listPrice) : null})
       ON CONFLICT (client_id,nonce) DO NOTHING RETURNING id`;
     if (!entry)
       throw new GatewayError(
@@ -67,9 +74,14 @@ export async function reserve(
   return id;
 }
 
-export async function finish(id: string, cost: number | null) {
+// Undefined cost means the marketplace has not reported settlement. Null explicitly releases a hold.
+export async function finish(
+  id: string,
+  cost: number | null | undefined,
+  usage?: Meter,
+) {
   if (
-    cost !== null &&
+    cost != null &&
     (!Number.isSafeInteger(cost) || cost < 0 || cost > 1_000_000_000_000)
   )
     throw Error("Invalid settled cost");
@@ -77,23 +89,44 @@ export async function finish(id: string, cost: number | null) {
     const [row] =
       await tx`SELECT * FROM gateway_requests WHERE id = ${id} FOR UPDATE`;
     if (!row) throw Error("Unknown request");
+    const previousCost =
+      row.upstream_micro == null ? null : Number(row.upstream_micro);
+    if (cost != null && previousCost !== null && previousCost !== cost)
+      throw Error("Conflicting settlement");
     if (row.status !== "pending") {
-      if (
-        (row.status === "released") !== (cost === null) ||
-        (cost !== null && Number(row.upstream_micro) !== cost)
-      )
+      if (cost !== undefined && (row.status === "released") !== (cost === null))
         throw Error("Conflicting settlement");
-      return Number(row.charge_micro);
+      return { charge: Number(row.charge_micro), comparison: row.comparison };
     }
-    const charge =
-      cost === null
-        ? 0
-        : Math.min(row.hold_micro, retail(cost, row.markup_bps));
-    await tx`UPDATE gateway_requests SET status = ${cost === null ? "released" : "settled"},
-      upstream_micro = ${cost}, charge_micro = ${charge}
-      WHERE id = ${id}`;
-    await tx`UPDATE gateway_clients SET available_micro = available_micro + ${row.hold_micro - charge} WHERE id = ${row.client_id}`;
-    return charge;
+
+    const list = row.list_price;
+    const comparison =
+      (usage &&
+        compareUsage(
+          list ?? directRate(row.model),
+          usage,
+          list?.discountBps,
+        )) ??
+      row.comparison;
+    const wholesale = cost ?? previousCost;
+    let charge: number | null = null;
+    if (cost === null) charge = 0;
+    else if (wholesale !== null) {
+      const price = list
+        ? comparison?.listChargeMicro
+        : retail(wholesale, row.markup_bps);
+      if (price != null) charge = Math.min(row.hold_micro, price);
+    }
+    const status =
+      cost === null ? "released" : charge === null ? "pending" : "settled";
+    await tx`UPDATE gateway_requests SET status = ${status}, upstream_micro = ${wholesale}, charge_micro = ${charge},
+      input_tokens = COALESCE(${usage?.prompt_tokens ?? null},input_tokens),
+      output_tokens = COALESCE(${usage?.completion_tokens ?? null},output_tokens),
+      comparison = ${comparison ? tx.json(comparison) : null} WHERE id = ${id}`;
+    if (charge !== null) {
+      await tx`UPDATE gateway_clients SET available_micro = available_micro + ${row.hold_micro - charge} WHERE id = ${row.client_id}`;
+    }
+    return { charge, comparison };
   });
 }
 

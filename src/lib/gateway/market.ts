@@ -1,5 +1,12 @@
 import { z } from "zod";
-import { type Chat, type Policy, retail } from "./policy";
+import {
+  type Chat,
+  type Policy,
+  type ListPrice,
+  compareUsage,
+  directRate,
+  retail,
+} from "./policy";
 
 function marketplaceOrigin() {
   const url = new URL(process.env.GATEWAY_MARKETPLACE_ORIGIN ?? "");
@@ -24,7 +31,13 @@ const offerSchema = z.object({
   discount_pct: z.number().min(0).max(100),
 });
 type Offer = z.infer<typeof offerSchema>;
-export type Route = { model: string; offer: Offer; estimatedMicro: number };
+export type Route = {
+  model: string;
+  offer: Offer;
+  estimatedMicro: number;
+  wholesaleMicro: number;
+  listPrice: ListPrice | null;
+};
 
 async function discover(path: string) {
   const response = await fetch(marketplaceOrigin() + path, {
@@ -72,6 +85,23 @@ export async function chooseRoute(policy: Policy, chat: Chat) {
       info.top_provider.max_completion_tokens < chat.max_tokens
     )
       continue;
+    const rate = directRate(model);
+    if (policy.listDiscountBps !== undefined && !rate) continue;
+    const listPrice =
+      rate && policy.listDiscountBps !== undefined
+        ? { ...rate, discountBps: policy.listDiscountBps }
+        : null;
+    const listQuote =
+      listPrice &&
+      compareUsage(
+        listPrice,
+        {
+          prompt_tokens: inputTokens,
+          completion_tokens: chat.max_tokens,
+          prompt_tokens_details: { cached_tokens: 0 },
+        },
+        listPrice.discountBps,
+      );
     for (const raw of result.value.offers ?? []) {
       const parsed = offerSchema.safeParse(raw);
       if (!parsed.success) continue;
@@ -81,16 +111,21 @@ export async function chooseRoute(policy: Policy, chat: Chat) {
         (policy.trustedOnly && !offer.trusted)
       )
         continue;
-      const estimatedMicro = retail(
-        Math.ceil(
-          (inputTokens * offer.effective_input_per_1m +
-            chat.max_tokens * offer.effective_output_per_1m) /
-            1_000_000,
-        ),
-        policy.markupBps,
+      const wholesaleMicro = Math.ceil(
+        (inputTokens * offer.effective_input_per_1m +
+          chat.max_tokens * offer.effective_output_per_1m) /
+          1_000_000,
       );
+      const estimatedMicro =
+        listQuote?.listChargeMicro ?? retail(wholesaleMicro, policy.markupBps);
       if (estimatedMicro <= policy.requestCapMicroUsd)
-        routes.push({ model, offer, estimatedMicro });
+        routes.push({
+          model,
+          offer,
+          estimatedMicro,
+          wholesaleMicro,
+          listPrice,
+        });
     }
   }
   routes.sort((a, b) => {
@@ -99,7 +134,9 @@ export async function chooseRoute(policy: Policy, chat: Chat) {
       a.offer.discount_pct !== b.offer.discount_pct
     )
       return b.offer.discount_pct - a.offer.discount_pct;
-    return a.estimatedMicro - b.estimatedMicro;
+    return (
+      a.estimatedMicro - b.estimatedMicro || a.wholesaleMicro - b.wholesaleMicro
+    );
   });
   return routes[0] ?? null;
 }

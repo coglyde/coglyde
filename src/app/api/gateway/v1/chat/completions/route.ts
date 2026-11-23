@@ -1,10 +1,5 @@
 import { z } from "zod";
-import {
-  chatSchema,
-  directEstimate,
-  functionCall,
-  meterSchema,
-} from "@/lib/gateway/policy";
+import { chatSchema, functionCall, meterSchema } from "@/lib/gateway/policy";
 import { chooseRoute, complete } from "@/lib/gateway/market";
 import {
   authenticate,
@@ -61,24 +56,16 @@ export async function POST(request: Request) {
     const priced =
       Number.isSafeInteger(cost) && cost >= 0 && cost <= 1_000_000_000_000;
     const usage = meterSchema.safeParse(result?.usage);
-    const comparison =
-      response.ok && usage.success
-        ? directEstimate(route.model, usage.data)
-        : null;
-    if (usage.success) {
-      await db()`UPDATE gateway_requests SET input_tokens = ${usage.data.prompt_tokens}, output_tokens = ${usage.data.completion_tokens},
-        comparison = ${comparison ? db().json(comparison) : null} WHERE id = ${id}`;
-    }
-    let charge: number | null = null;
-    if (priced) charge = await finish(id, cost);
+    const refused =
+      !response.ok &&
+      !priced &&
+      [400, 401, 402, 403, 404, 413, 422, 429].includes(response.status);
+    const { charge, comparison } = await finish(
+      id,
+      priced ? cost : refused ? null : undefined,
+      response.ok && usage.success ? usage.data : undefined,
+    );
     if (!response.ok) {
-      // A definite refusal before inference releases the reservation. Timeouts and
-      // ambiguous failures stay pending for reconciliation, including network errors.
-      if (
-        !priced &&
-        [400, 401, 402, 403, 404, 413, 422, 429].includes(response.status)
-      )
-        await finish(id, null);
       throw new GatewayError(
         502,
         "The selected model could not complete this request",
@@ -97,7 +84,7 @@ export async function POST(request: Request) {
         usage: usage.success ? usage.data : null,
         billing: {
           currency: "USD",
-          status: priced ? "settled" : "pending",
+          status: charge !== null ? "settled" : "pending",
           charge_micro: charge,
           direct_estimate: comparison,
           savings_micro:

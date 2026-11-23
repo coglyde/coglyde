@@ -8,7 +8,8 @@ import { GET } from "../../src/app/api/gateway/v1/usage/route";
 import { chooseRoute } from "../../src/lib/gateway/market";
 import {
   chatSchema,
-  directEstimate,
+  compareUsage,
+  directRate,
   policySchema,
 } from "../../src/lib/gateway/policy";
 import {
@@ -96,12 +97,54 @@ test("direct text estimates use reported cache reads; unsupported comparisons ar
     completion_tokens: 1000,
     prompt_tokens_details: { cached_tokens: 2000 },
   };
-  assert.equal(directEstimate(mini, usage)?.microUsd, 10650);
+  assert.equal(compareUsage(directRate(mini), usage)?.microUsd, 10650);
   assert.equal(
-    directEstimate(mini, { ...usage, prompt_tokens_details: null }),
+    compareUsage(directRate(mini), { ...usage, prompt_tokens_details: null }),
     null,
   );
-  assert.equal(directEstimate("unknown", usage), null);
+  assert.equal(compareUsage(directRate("unknown"), usage), null);
+});
+test("list pricing applies to each model and rounds the discounted total once", async (t) => {
+  const first = {
+    prompt_tokens: 25,
+    completion_tokens: 16,
+    prompt_tokens_details: { cached_tokens: 0 },
+  };
+  assert.equal(
+    compareUsage(directRate(mini), first, 2000)?.listChargeMicro,
+    73,
+  );
+  assert.equal(
+    compareUsage(directRate(sonnet), first, 2000)?.listChargeMicro,
+    252,
+  );
+  assert.equal(
+    compareUsage(
+      directRate(mini),
+      { ...first, prompt_tokens: 2, completion_tokens: 0 },
+      2000,
+    )?.listChargeMicro,
+    1,
+  );
+  assert.equal(
+    compareUsage(
+      directRate(sonnet),
+      { ...first, prompt_tokens_details: { cached_tokens: 25 } },
+      2000,
+    )?.listChargeMicro,
+    198,
+  );
+  t.mock.method(globalThis, "fetch", async (url: string) => discovery(url));
+  const discounted = { ...policy, listDiscountBps: 2000 };
+  assert.equal((await chooseRoute(discounted, chat))?.listPrice?.input, 750000);
+  assert.equal(
+    await chooseRoute({ ...discounted, requestCapMicroUsd: 300 }, chat),
+    null,
+  );
+  assert.equal(
+    await chooseRoute({ ...discounted, models: ["unknown"] }, chat),
+    null,
+  );
 });
 test(
   "prepaid gateway and signed-event fulfillment use one client ledger",
@@ -134,6 +177,7 @@ test(
     let status = 200;
     let cost: string | null = "100";
     let calls = 0;
+    let cached: number | undefined = 0;
     t.mock.method(
       globalThis,
       "fetch",
@@ -164,7 +208,7 @@ test(
             usage: {
               prompt_tokens: 1000,
               completion_tokens: 100,
-              prompt_tokens_details: { cached_tokens: 0 },
+              prompt_tokens_details: { cached_tokens: cached },
             },
           },
           { status, headers: responseHeaders },
@@ -207,10 +251,7 @@ test(
     const pending = await (a.ok ? a : b).json();
     assert.equal(pending.billing.status, "pending");
     assert.equal((await history(client)).available_micro, "0");
-    await Promise.all([
-      finish(pending.id, 50),
-      finish(pending.id, 50),
-    ]);
+    await Promise.all([finish(pending.id, 50), finish(pending.id, 50)]);
     assert.equal((await history(client)).available_micro, "49940");
     await deposit(client, randomUUID(), 60);
     status = 429;
@@ -220,6 +261,36 @@ test(
     const uncertain = await (await call()).json();
     assert.equal((await history(client)).available_micro, "0");
     await finish(uncertain.request_id, null);
+    // A policy change only affects new reservations. Reconcile the pending call
+    // after switching back to demonstrate that its original discount is retained.
+    await sql`UPDATE gateway_clients SET policy = ${sql.json({ ...policy, listDiscountBps: 2000 })} WHERE id = ${client}`;
+    status = 200;
+    const deferred = await (await call()).json();
+    await sql`UPDATE gateway_clients SET policy = ${sql.json(policy)} WHERE id = ${client}`;
+    assert.equal((await finish(deferred.id, 100)).charge, 960);
+    assert.equal((await finish(deferred.id, 100)).charge, 960);
+    assert.equal((await history(client)).available_micro, "49040");
+    await sql`UPDATE gateway_clients SET policy = ${sql.json({ ...policy, listDiscountBps: 2000 })} WHERE id = ${client}`;
+    await deposit(client, randomUUID(), 960);
+    cost = "100";
+    cached = undefined;
+    const incomplete = await (await call()).json();
+    assert.equal(incomplete.billing.status, "pending");
+    assert.equal(incomplete.billing.charge_micro, null);
+    assert.equal((await finish(incomplete.id, 100)).charge, null);
+    assert.equal((await history(client)).available_micro, "0");
+    const corrected = {
+      prompt_tokens: 1000,
+      completion_tokens: 100,
+      prompt_tokens_details: { cached_tokens: 1000 },
+    };
+    assert.equal((await finish(incomplete.id, 100, corrected)).charge, 420);
+    await deposit(client, randomUUID(), 420);
+    cached = 0;
+    const settled = await (await call()).json();
+    assert.equal(settled.billing.charge_micro, 960);
+    assert.equal(settled.billing.status, "settled");
+    assert.equal(settled.billing.savings_micro, 240);
     const receipt = await GET(new Request("http://localhost/", { headers }));
     assert.equal(receipt.status, 200);
     assert.equal(
