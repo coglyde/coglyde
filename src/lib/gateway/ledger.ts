@@ -8,6 +8,8 @@ import {
   type Policy,
   retail,
 } from "./policy";
+import { monthlyTier } from "./tiers";
+import type { CreditRoute } from "./credits";
 import type { Route } from "./market";
 
 let pool: ReturnType<typeof postgres> | undefined;
@@ -49,29 +51,109 @@ export function upstreamKey(client: string) {
   return key;
 }
 
+// This lock serializes grant checks, nonce creation and wallet holds for one tenant.
+// A definite upstream rejection can switch the existing request to another route.
 export async function reserve(
   client: string,
   policy: Policy,
-  route: Route,
+  route: Route | CreditRoute,
   nonce: string,
-) {
-  const id = randomUUID();
-  await db().begin(async (tx) => {
+  existing?: string,
+  outputTokens?: number,
+): Promise<string | null> {
+  const id = existing ?? randomUUID();
+  return db().begin(async (tx) => {
+    const [wallet] =
+      await tx`SELECT available_micro, policy FROM gateway_clients
+      WHERE id = ${client} AND enabled FOR UPDATE`;
+    if (!wallet) throw new GatewayError(401, "Invalid Coglyde key");
+    let snapshot = route.listPrice;
+    const livePolicy = policySchema.parse(wallet.policy);
+    if (livePolicy.monthlyLimitsMicro || policy.monthlyLimitsMicro) {
+      if (!outputTokens || !route.listPrice)
+        throw Error("Missing monthly reservation data");
+      if (existing) {
+        // The initial reservation already claimed this model's monthly allowance.
+        const [prior] =
+          await tx`SELECT model, list_price FROM gateway_requests WHERE id=${id} AND client_id=${client} AND status='pending'`;
+        if (prior?.model !== route.model || !prior.list_price?.monthlyHold)
+          throw Error("Invalid tier change");
+        snapshot = Object.assign({}, snapshot, {
+          monthlyHold: prior.list_price.monthlyHold,
+        });
+      } else {
+        const tier = await monthlyTier(tx, client, livePolicy, outputTokens);
+        if (!tier)
+          throw new GatewayError(
+            429,
+            "Monthly model allowance is fully reserved",
+          );
+        if (tier.model !== route.model)
+          throw new GatewayError(
+            409,
+            "Monthly route changed. Retry the request.",
+          );
+        snapshot = Object.assign({}, snapshot, { monthlyHold: tier.held });
+      }
+    }
+    if ("grant" in route) {
+      const { grant, creditHold } = route;
+      // A policy can be reduced or revoked while a request waits for this lock.
+      if (
+        !livePolicy.creditGrants?.some(
+          (current) =>
+            current.provider === grant.provider &&
+            current.startsAt === grant.startsAt &&
+            current.expiresAt === grant.expiresAt &&
+            current.allocationMicro === grant.allocationMicro,
+        )
+      )
+        return null;
+      // Half a microdollar per rounded receipt is possible. Retain a full unit.
+      const [budget] = await tx`SELECT COALESCE(SUM(CASE status
+        WHEN 'released' THEN 0 WHEN 'settled' THEN COALESCE((comparison->>'microUsd')::bigint + 1,
+          (list_price->>'creditHold')::bigint) ELSE (list_price->>'creditHold')::bigint END),0) AS used
+        FROM gateway_requests WHERE client_id = ${client} AND provider = ${grant.provider}
+        AND list_price ? 'creditHold' AND created_at >= ${grant.startsAt}::timestamptz
+        AND id <> ${id}`;
+      if (
+        Date.now() < Date.parse(grant.startsAt) ||
+        Date.now() + 90_000 >= Date.parse(grant.expiresAt) ||
+        Number(budget.used) + creditHold > grant.allocationMicro
+      )
+        return null;
+      snapshot = Object.assign({}, snapshot, { creditHold });
+    }
+    if (existing) {
+      const [switched] =
+        await tx`UPDATE gateway_requests SET model=${route.model},
+        provider=${route.offer.provider_id}, list_price=${snapshot ? tx.json(snapshot) : null}, upstream_reference=NULL
+        WHERE id=${id} AND client_id=${client} AND nonce=${nonce} AND status='pending'
+        AND list_price ? 'creditHold' RETURNING id`;
+      if (!switched) throw Error("Cannot switch request");
+      return id;
+    }
+    const customerHold = livePolicy.monthlyLimitsMicro
+      ? Math.min(Number(wallet.available_micro), policy.requestCapMicroUsd)
+      : policy.requestCapMicroUsd;
     const [entry] =
       await tx`INSERT INTO gateway_requests (id,client_id,nonce,model,provider,hold_micro,markup_bps,list_price)
-      VALUES (${id},${client},${nonce},${route.model},${route.offer.provider_id},${policy.requestCapMicroUsd},${policy.markupBps},${route.listPrice ? tx.json(route.listPrice) : null})
+      VALUES (${id},${client},${nonce},${route.model},${route.offer.provider_id},${Math.max(1, customerHold)},${policy.markupBps},${snapshot ? tx.json(snapshot) : null})
       ON CONFLICT (client_id,nonce) DO NOTHING RETURNING id`;
     if (!entry)
       throw new GatewayError(
         409,
         "Request already accepted. Check usage for its receipt.",
       );
-    const [wallet] =
-      await tx`UPDATE gateway_clients SET available_micro = available_micro - ${policy.requestCapMicroUsd}
-      WHERE id = ${client} AND enabled AND available_micro >= ${policy.requestCapMicroUsd} RETURNING id`;
-    if (!wallet) throw new GatewayError(402, "Insufficient available credit");
+    if (
+      !customerHold ||
+      Number(wallet.available_micro) < customerHold ||
+      route.estimatedMicro > customerHold
+    )
+      throw new GatewayError(402, "Insufficient available credit");
+    await tx`UPDATE gateway_clients SET available_micro = available_micro - ${customerHold} WHERE id = ${client}`;
+    return id;
   });
-  return id;
 }
 
 // Undefined cost means the marketplace has not reported settlement. Null explicitly releases a hold.

@@ -1,6 +1,12 @@
 import { z } from "zod";
 import { chatSchema, functionCall, meterSchema } from "@/lib/gateway/policy";
-import { chooseRoute, complete } from "@/lib/gateway/market";
+import {
+  creditCandidates,
+  completeCredit,
+  type CreditRoute,
+} from "@/lib/gateway/credits";
+import { monthlyTier } from "@/lib/gateway/tiers";
+import { chooseRoute, complete, type Route } from "@/lib/gateway/market";
 import {
   authenticate,
   db,
@@ -34,15 +40,78 @@ export async function POST(request: Request) {
     const requestKey = nonce(request);
     const input = chatSchema.safeParse(await readJson(request));
     if (!input.success) throw new GatewayError(400, "Invalid chat request");
-    const buyerKey = upstreamKey(client.id);
-    const route = await chooseRoute(client.policy, input.data);
-    if (!route)
-      throw new GatewayError(
-        503,
-        "No eligible model is available within your settings",
+    let routingPolicy = client.policy;
+    if (client.policy.monthlyLimitsMicro) {
+      const tier = await monthlyTier(
+        db(),
+        client.id,
+        client.policy,
+        input.data.max_tokens,
       );
-    id = await reserve(client.id, client.policy, route, requestKey);
-    const response = await complete(route, input.data, buyerKey);
+      if (!tier)
+        throw new GatewayError(
+          429,
+          "Monthly model allowance is fully reserved",
+        );
+      routingPolicy = { ...client.policy, models: [tier.model] };
+    }
+    let route: Route | undefined;
+    let response: Response | undefined;
+    let usedCredit: CreditRoute | undefined;
+    for (const candidate of creditCandidates(
+      client.id,
+      routingPolicy,
+      input.data,
+    )) {
+      const held = await reserve(
+        client.id,
+        client.policy,
+        candidate,
+        requestKey,
+        id,
+        input.data.max_tokens,
+      );
+      if (!held) continue;
+      id = held;
+      const direct = await completeCredit(client.id, candidate, input.data);
+      // Only retry explicit pre-generation refusals. A timeout or a server error
+      // can mean inference already happened and must keep its original receipt.
+      if ([401, 402, 403, 404, 429].includes(direct.status)) {
+        await direct.body?.cancel();
+        continue;
+      }
+      route = candidate;
+      response = direct;
+      usedCredit = candidate;
+      break;
+    }
+    if (!response || !route) {
+      let buyerKey: string;
+      try {
+        buyerKey = upstreamKey(client.id);
+        route = (await chooseRoute(routingPolicy, input.data)) ?? undefined;
+        if (!route)
+          throw new GatewayError(
+            503,
+            "No eligible model is available within your settings",
+          );
+      } catch (error) {
+        if (id) await finish(id, null);
+        throw error;
+      }
+      const held = await reserve(
+        client.id,
+        client.policy,
+        route,
+        requestKey,
+        id,
+        input.data.max_tokens,
+      );
+      if (!held) throw Error("Marketplace reservation unavailable");
+      id = held;
+      response = await complete(route, input.data, buyerKey);
+    }
+    if (!id) throw Error("Missing request reservation");
     const reference =
       response.headers.get("x-request-id") ??
       response.headers.get("x-si-trace-id");
@@ -52,10 +121,23 @@ export async function POST(request: Request) {
     const headerCost =
       rawCost && /^\d+$/.test(rawCost) ? Number(rawCost) : null;
     const result = await response.json().catch(() => null);
-    const cost = headerCost ?? result?.usage?.buyer_cost_micro;
+    // The direct path is admitted only with a provider-protected promotional allocation.
+    const cost = usedCredit
+      ? response.ok
+        ? 0
+        : undefined
+      : (headerCost ?? result?.usage?.buyer_cost_micro);
     const priced =
       Number.isSafeInteger(cost) && cost >= 0 && cost <= 1_000_000_000_000;
-    const usage = meterSchema.safeParse(result?.usage);
+    // The Claude compatibility endpoint does not support prompt caching.
+    const rawUsage = result?.usage;
+    const usage = meterSchema.safeParse(
+      usedCredit?.grant.provider === "anthropic" &&
+        rawUsage &&
+        !rawUsage.prompt_tokens_details
+        ? { ...rawUsage, prompt_tokens_details: { cached_tokens: 0 } }
+        : rawUsage,
+    );
     const refused =
       !response.ok &&
       !priced &&

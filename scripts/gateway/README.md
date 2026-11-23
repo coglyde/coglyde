@@ -37,3 +37,39 @@ With missing cost, timeouts, or an ambiguous failure, `npm run gateway:admin -- 
 ## Verification
 
 Run `npm run test:gateway`. Set `GATEWAY_TEST_DATABASE_URL` to a disposable PostgreSQL database to include concurrent funding, tenant accounting, retry, and HTTP handler integration tests. Requests to model providers are stubbed in the tests.
+
+## Subscription credit routing
+
+A list-price client can use a dedicated OpenAI or Anthropic project credential from
+`GATEWAY_OPENAI_KEY_<CLIENT_ID>` or `GATEWAY_ANTHROPIC_KEY_<CLIENT_ID>`.
+Leave `creditGrants` absent for a shared billing account that can draw on purchased
+funds. A positive dashboard balance, a monthly subscription, and a project spend
+alert do not guarantee promotional coverage. A protected upstream allocation must
+exclude purchased funds and leave the other applications' reserve available.
+Configure a given allocation for only one client.
+
+After confirming those conditions with the provider, use the existing policy
+command to record a `creditGrants` entry with `provider` (`openai` or `anthropic`),
+`startsAt` and `expiresAt` (UTC grant boundaries), `allocationMicro` (only the
+portion reserved for this client), and `coverage: "provider_reserved_promo_only"`.
+Review a newly issued grant before updating its dates and amount. Keep the original
+start date when reducing an existing allocation. The gateway never creates a
+renewal based solely on the calendar.
+
+Requests first try authorized credit routes in estimated customer-price order.
+Each in-flight call reserves a conservative provider-cost ceiling. Settled calls
+consume their metered direct price rounded up conservatively. Remaining allowance,
+expiry, missing keys or an explicit upstream capacity/credential refusal can move
+a request to the next route, then the marketplace. Timeouts keep the original
+reservation for reconciliation. Customer pricing uses the same list-price snapshot
+on either path. A zero upstream cash cost on a covered request still consumes
+provider credit.
+
+An optional `monthlyLimitsMicro` map enforces per-model ceilings in published
+list-price microdollars, shared by direct and marketplace routes. With this
+setting, the order in `models` is binding. The next model becomes eligible when
+the current one cannot cover a request's conservative maximum token cost, even
+after accounting for pending requests. No listed model with enough allowance
+returns HTTP 429. A missing offer for the eligible tier returns HTTP 503. Usage
+periods begin on the first of each calendar month at 00:00 UTC. These limits
+do not deposit money into either the provider account or the customer's wallet.
