@@ -6,6 +6,7 @@ export const policySchema = z.strictObject({
   providers: z.array(slug).min(1).max(32),
   trustedOnly: z.boolean(),
   strategy: z.enum(["lowest_cost", "largest_discount"]),
+  listDiscountBps: z.int().min(0).max(10000).optional(),
   markupBps: z.int().min(0).max(10000),
   requestCapMicroUsd: z.int().positive().max(100_000_000),
 });
@@ -39,25 +40,41 @@ export const meterSchema = z.object({
     .nullish(),
 });
 
-export function directEstimate(
-  model: string,
-  usage: z.infer<typeof meterSchema>,
-) {
-  const rate = directRates[model];
+export type Meter = z.infer<typeof meterSchema>;
+type DirectRate = (typeof directRates)[string] & { rateDate: string };
+export type ListPrice = DirectRate & { discountBps: number };
+export function directRate(model: string): DirectRate | null {
   if (!Object.hasOwn(directRates, model)) return null;
+  return { ...directRates[model], rateDate: "2026-11-22" };
+}
+
+export function compareUsage(
+  rate: DirectRate | null,
+  usage: Meter,
+  discountBps?: number,
+) {
   const cached = usage.prompt_tokens_details?.cached_tokens;
-  if (cached === undefined || cached > usage.prompt_tokens) return null;
-  const microUsd = Math.round(
+  if (!rate || cached === undefined || cached > usage.prompt_tokens)
+    return null;
+  const exactMicro =
     ((usage.prompt_tokens - cached) * rate.input +
       cached * rate.cached +
       usage.completion_tokens * rate.output) /
-      1_000_000,
-  );
+    1_000_000;
   return {
-    microUsd,
+    microUsd: Math.round(exactMicro),
     source: rate.source,
     basis: "standard_text_reported_cache",
-    rateDate: "2026-11-22",
+    rateDate: rate.rateDate,
+    ...(discountBps === undefined
+      ? {}
+      : {
+          discountBps,
+          // Apply the discount before rounding to the ledger's smallest unit.
+          listChargeMicro: Math.round(
+            (exactMicro * (10_000 - discountBps)) / 10_000,
+          ),
+        }),
   };
 }
 
