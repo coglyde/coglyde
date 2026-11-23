@@ -2,20 +2,39 @@ import { compareUsage, directRate, type Chat, type Policy } from "./policy";
 import type { Route } from "./market";
 
 type Grant = NonNullable<Policy["creditGrants"]>[number];
-const providers = {
-  openai: {
+const directModels = {
+  "gpt-5.4-mini": {
+    provider: "openai",
     model: "gpt-5.4-mini",
     wireModel: "gpt-5.4-mini",
     context: 400_000,
     endpoint: "https://api.openai.com/v1/chat/completions",
   },
-  anthropic: {
+  "claude-sonnet-4.6": {
+    provider: "anthropic",
     model: "claude-sonnet-4.6",
     wireModel: "claude-sonnet-4-6",
     context: 1_000_000,
     endpoint: "https://api.anthropic.com/v1/chat/completions",
   },
+  "claude-haiku-5.5": {
+    provider: "anthropic",
+    model: "claude-haiku-5.5",
+    wireModel: "claude-haiku-5-5",
+    context: 1_000_000,
+    endpoint: "https://api.anthropic.com/v1/chat/completions",
+  },
 } as const;
+export function maxListCost(model: string, outputTokens: number) {
+  if (!Object.hasOwn(directModels, model)) return Infinity;
+  const spec = directModels[model as keyof typeof directModels];
+  const rate = directRate(model)!;
+  return Math.ceil(
+    ((rate.longContext?.multiplier ?? 1) *
+      (rate.input * spec.context + rate.output * outputTokens)) /
+      1_000_000,
+  );
+}
 
 export type CreditRoute = Route & {
   grant: Grant;
@@ -36,8 +55,13 @@ export function creditCandidates(
 ) {
   const routes: CreditRoute[] = [];
   if (policy.listDiscountBps === undefined) return routes;
-  for (const grant of policy.creditGrants ?? []) {
-    const { model, context } = providers[grant.provider];
+  for (const model of policy.models) {
+    if (!Object.hasOwn(directModels, model)) continue;
+    const spec = directModels[model as keyof typeof directModels];
+    const grant = policy.creditGrants?.find(
+      (g) => g.provider === spec.provider,
+    );
+    if (!grant) continue;
     const rate = directRate(model);
     if (
       !rate ||
@@ -84,9 +108,7 @@ export function creditCandidates(
       grant,
       estimatedMicro,
       wholesaleMicro: 0,
-      creditHold: Math.ceil(
-        (rate.input * context + rate.output * chat.max_tokens) / 1_000_000,
-      ),
+      creditHold: maxListCost(model, chat.max_tokens),
       listPrice: { ...rate, discountBps: policy.listDiscountBps },
       offer: {
         provider_id: grant.provider,
@@ -105,7 +127,8 @@ export function creditCandidates(
 
 export function completeCredit(client: string, route: CreditRoute, chat: Chat) {
   const provider = route.grant.provider;
-  const { endpoint, wireModel } = providers[provider];
+  const { endpoint, wireModel } =
+    directModels[route.model as keyof typeof directModels];
   const key = keyFor(client, provider);
   if (!key) throw Error("Missing credit credential");
   return fetch(endpoint, {

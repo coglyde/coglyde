@@ -64,3 +64,12 @@ a request to the next route, then the marketplace. Timeouts keep the original
 reservation for reconciliation. Customer pricing uses the same list-price snapshot
 on either path. A zero upstream cash cost on a covered request still consumes
 provider credit.
+
+An optional `monthlyLimitsMicro` map enforces per-model ceilings in published
+list-price microdollars, shared by direct and marketplace routes. With this
+setting, the order in `models` is binding. The next model becomes eligible when
+the current one cannot cover a request's conservative maximum token cost, even
+after accounting for pending requests. No listed model with enough allowance
+returns HTTP 429. A missing offer for the eligible tier returns HTTP 503. Usage
+periods begin on the first of each calendar month at 00:00 UTC. These limits
+do not deposit money into either the provider account or the customer's wallet.

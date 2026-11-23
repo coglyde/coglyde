@@ -7,6 +7,9 @@ export const policySchema = z.strictObject({
   trustedOnly: z.boolean(),
   strategy: z.enum(["lowest_cost", "largest_discount"]),
   listDiscountBps: z.int().min(0).max(10000).optional(),
+  monthlyLimitsMicro: z
+    .record(slug, z.int().positive().max(1_000_000_000))
+    .optional(),
   // Only provision against an upstream allocation that cannot spend purchased credit.
   creditGrants: z
     .array(
@@ -34,6 +37,12 @@ const directRates: Record<
   string,
   { input: number; cached: number; output: number; source: string }
 > = {
+  "claude-haiku-5.5": {
+    input: 100000,
+    cached: 10000,
+    output: 500000,
+    source: "https://platform.claude.com/docs/en/models/haiku-5-5/overview",
+  },
   "gpt-5.4-mini": {
     input: 750000,
     cached: 75000,
@@ -57,11 +66,20 @@ export const meterSchema = z.object({
 });
 
 export type Meter = z.infer<typeof meterSchema>;
-type DirectRate = (typeof directRates)[string] & { rateDate: string };
+type DirectRate = (typeof directRates)[string] & {
+  rateDate: string;
+  longContext?: { above: number; multiplier: number };
+};
 export type ListPrice = DirectRate & { discountBps: number };
 export function directRate(model: string): DirectRate | null {
   if (!Object.hasOwn(directRates, model)) return null;
-  return { ...directRates[model], rateDate: "2026-11-22" };
+  return {
+    ...directRates[model],
+    rateDate: model === "claude-haiku-5.5" ? "2026-11-23" : "2026-11-22",
+    ...(model === "claude-haiku-5.5" && {
+      longContext: { above: 100_000, multiplier: 5 },
+    }),
+  };
 }
 
 export function compareUsage(
@@ -72,10 +90,15 @@ export function compareUsage(
   const cached = usage.prompt_tokens_details?.cached_tokens;
   if (!rate || cached === undefined || cached > usage.prompt_tokens)
     return null;
+  const factor =
+    rate.longContext && usage.prompt_tokens > rate.longContext.above
+      ? rate.longContext.multiplier
+      : 1;
   const exactMicro =
-    ((usage.prompt_tokens - cached) * rate.input +
-      cached * rate.cached +
-      usage.completion_tokens * rate.output) /
+    (factor *
+      ((usage.prompt_tokens - cached) * rate.input +
+        cached * rate.cached +
+        usage.completion_tokens * rate.output)) /
     1_000_000;
   return {
     microUsd: Math.round(exactMicro),

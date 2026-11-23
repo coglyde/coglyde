@@ -19,8 +19,11 @@ import {
   digest,
   finish,
   history,
+  reserve,
 } from "../../src/lib/gateway/ledger";
 import { processGatewayPayment } from "../../src/lib/gateway/stripe";
+import { monthlyTier } from "../../src/lib/gateway/tiers";
+import { maxListCost } from "../../src/lib/gateway/credits";
 import pilot from "./pilot.json";
 
 process.env.GATEWAY_MARKETPLACE_ORIGIN = "https://inference.example.test";
@@ -392,6 +395,109 @@ test(
     assert.equal(attempts.length, before + 1);
     assert.equal((await (await call()).json()).billing.charge_micro, 960);
     assert.equal(attempts.length, before + 1);
+    const haiku = "claude-haiku-5.5";
+    assert.equal(
+      compareUsage(
+        directRate(haiku),
+        {
+          prompt_tokens: 1000,
+          completion_tokens: 300,
+          prompt_tokens_details: { cached_tokens: 0 },
+        },
+        2000,
+      )?.listChargeMicro,
+      200,
+    );
+    assert.equal(
+      compareUsage(
+        directRate(haiku),
+        {
+          prompt_tokens: 100001,
+          completion_tokens: 300,
+          prompt_tokens_details: { cached_tokens: 0 },
+        },
+        2000,
+      )?.listChargeMicro,
+      40600,
+    );
+    const tiers = {
+      ...creditPolicy,
+      models: [haiku, mini],
+      monthlyLimitsMicro: {
+        [haiku]: maxListCost(haiku, chat.max_tokens),
+        [mini]: 5_000_000,
+      },
+    };
+    const monthlyClient = client + "_TIERS";
+    process.env["GATEWAY_ANTHROPIC_KEY_" + monthlyClient] = "test-claude";
+    await sql`INSERT INTO gateway_clients (id,policy,key_digest,available_micro) VALUES
+      (${monthlyClient}, ${sql.json(tiers)}, ${digest(randomUUID())}, 500000)`;
+    const haikuRoute = creditCandidates(
+      monthlyClient,
+      { ...tiers, models: [haiku] },
+      chat,
+    )[0];
+    const claim = () =>
+      reserve(
+        monthlyClient,
+        tiers,
+        haikuRoute,
+        randomUUID(),
+        undefined,
+        chat.max_tokens,
+      );
+    const concurrent = await Promise.allSettled([claim(), claim()]);
+    const winners = concurrent.filter((r) => r.status === "fulfilled");
+    assert.equal(winners.length, 1);
+    assert.equal(
+      (await monthlyTier(sql, monthlyClient, tiers, chat.max_tokens))?.model,
+      mini,
+    );
+    const winner = winners[0].value;
+    assert.ok(winner);
+    await finish(winner, null);
+    assert.equal(
+      (await monthlyTier(sql, monthlyClient, tiers, chat.max_tokens))?.model,
+      haiku,
+    );
+    // Marketplace requests count against the same allowance. An ambiguous
+    // response retains its hold, preventing a concurrent second admission.
+    const { grant: _grant, creditHold: _hold, ...marketHaiku } = haikuRoute;
+    void _grant;
+    void _hold;
+    const marketId = await reserve(
+      monthlyClient,
+      tiers,
+      marketHaiku,
+      randomUUID(),
+      undefined,
+      chat.max_tokens,
+    );
+    assert.ok(marketId);
+    const exhausted = {
+      ...tiers,
+      monthlyLimitsMicro: { ...tiers.monthlyLimitsMicro, [mini]: 1 },
+    };
+    assert.equal(
+      await monthlyTier(sql, monthlyClient, exhausted, chat.max_tokens),
+      null,
+    );
+    await finish(marketId, 80, {
+      prompt_tokens: 1000,
+      completion_tokens: 300,
+      prompt_tokens_details: { cached_tokens: 0 },
+    });
+    assert.equal(
+      (await monthlyTier(sql, monthlyClient, tiers, chat.max_tokens))?.model,
+      mini,
+    );
+    await sql`UPDATE gateway_requests SET created_at=(date_trunc('month', now() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC') - interval '1 second' WHERE id=${marketId}`;
+    assert.equal(
+      (await monthlyTier(sql, monthlyClient, tiers, chat.max_tokens))?.model,
+      haiku,
+    );
+    await sql`DELETE FROM gateway_requests WHERE client_id=${monthlyClient}`;
+    await sql`DELETE FROM gateway_clients WHERE id=${monthlyClient}`;
     const receipt = await GET(new Request("http://localhost/", { headers }));
     assert.equal(receipt.status, 200);
     assert.equal(

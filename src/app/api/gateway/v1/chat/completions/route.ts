@@ -5,6 +5,7 @@ import {
   completeCredit,
   type CreditRoute,
 } from "@/lib/gateway/credits";
+import { monthlyTier } from "@/lib/gateway/tiers";
 import { chooseRoute, complete, type Route } from "@/lib/gateway/market";
 import {
   authenticate,
@@ -39,12 +40,27 @@ export async function POST(request: Request) {
     const requestKey = nonce(request);
     const input = chatSchema.safeParse(await readJson(request));
     if (!input.success) throw new GatewayError(400, "Invalid chat request");
+    let routingPolicy = client.policy;
+    if (client.policy.monthlyLimitsMicro) {
+      const tier = await monthlyTier(
+        db(),
+        client.id,
+        client.policy,
+        input.data.max_tokens,
+      );
+      if (!tier)
+        throw new GatewayError(
+          429,
+          "Monthly model allowance is fully reserved",
+        );
+      routingPolicy = { ...client.policy, models: [tier.model] };
+    }
     let route: Route | undefined;
     let response: Response | undefined;
     let usedCredit: CreditRoute | undefined;
     for (const candidate of creditCandidates(
       client.id,
-      client.policy,
+      routingPolicy,
       input.data,
     )) {
       const held = await reserve(
@@ -53,6 +69,7 @@ export async function POST(request: Request) {
         candidate,
         requestKey,
         id,
+        input.data.max_tokens,
       );
       if (!held) continue;
       id = held;
@@ -72,7 +89,7 @@ export async function POST(request: Request) {
       let buyerKey: string;
       try {
         buyerKey = upstreamKey(client.id);
-        route = (await chooseRoute(client.policy, input.data)) ?? undefined;
+        route = (await chooseRoute(routingPolicy, input.data)) ?? undefined;
         if (!route)
           throw new GatewayError(
             503,
@@ -88,6 +105,7 @@ export async function POST(request: Request) {
         route,
         requestKey,
         id,
+        input.data.max_tokens,
       );
       if (!held) throw Error("Marketplace reservation unavailable");
       id = held;
