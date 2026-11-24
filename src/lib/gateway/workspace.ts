@@ -14,7 +14,7 @@ const personalPolicy = policySchema.parse({
   providers: ["anthropic", "openai"],
   trustedOnly: true,
   strategy: "lowest_cost",
-  listDiscountBps: 2000,
+  listDiscountBps: 1500,
   markupBps: 0,
   requestCapMicroUsd: 50000,
 });
