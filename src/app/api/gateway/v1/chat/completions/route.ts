@@ -124,8 +124,8 @@ export async function POST(request: Request) {
     }
     if (!id) throw Error("Missing request reservation");
     const reference =
-      response.headers.get("x-si-trace-id") ??
-      response.headers.get("x-request-id");
+      response.headers.get("x-request-id") ??
+      response.headers.get("x-si-trace-id");
     if (reference)
       await db()`UPDATE gateway_requests SET upstream_reference = ${reference} WHERE id = ${id}`;
     const rawCost = response.headers.get("x-si-buyer-cost-micro");

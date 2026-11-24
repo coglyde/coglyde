@@ -240,6 +240,7 @@ test(
         );
         const responseHeaders = new Headers({
           "x-request-id": "private-reference",
+          "x-si-trace-id": "routing-trace-not-a-billing-id",
         });
         if (headerList) responseHeaders.set("x-si-list-cost-micro", headerList);
         if (cost !== null) responseHeaders.set("x-si-buyer-cost-micro", cost);
