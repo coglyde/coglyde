@@ -2,6 +2,7 @@ import { createHash, randomUUID } from "node:crypto";
 import postgres from "postgres";
 import {
   compareUsage,
+  compareReportedList,
   directRate,
   policySchema,
   type Meter,
@@ -161,6 +162,7 @@ export async function finish(
   id: string,
   cost: number | null | undefined,
   usage?: Meter,
+  reportedListMicro?: number,
 ) {
   if (
     cost != null &&
@@ -189,6 +191,9 @@ export async function finish(
           usage,
           list?.discountBps,
         )) ??
+      (list && usage && reportedListMicro !== undefined
+        ? compareReportedList(list, usage, reportedListMicro)
+        : null) ??
       row.comparison;
     const wholesale = cost ?? previousCost;
     let charge: number | null = null;
