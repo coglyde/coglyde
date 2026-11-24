@@ -80,7 +80,9 @@ Run the idempotent `gateway:admin -- migrate` before deploying the account API.
 For an existing gateway client, link the workspace with
 `npm run gateway:admin -- workspace CLIENT_ID owner@example.com "Workspace name"`.
 The first login with that verified primary Clerk email binds the workspace to
-the Clerk user ID. The command can rename a workspace with the same owner.
+the Clerk user ID. Pass `-` for the email to reserve an unowned workspace with
+purchases paused. Repeat with the verified owner email to enroll them. The
+command can rename a workspace with the same owner.
 For a new tenant, run the existing client creation and supplier provisioning
 steps first. Pricing and routing remain in its policy.
 

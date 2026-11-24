@@ -36,10 +36,11 @@ ALTER TABLE gateway_clients ALTER COLUMN key_digest DROP NOT NULL;
 CREATE TABLE IF NOT EXISTS gateway_workspaces (
   client_id text PRIMARY KEY REFERENCES gateway_clients(id),
   display_name text NOT NULL,
-  owner_email text NOT NULL UNIQUE CHECK (owner_email = lower(owner_email)),
+  owner_email text UNIQUE CHECK (owner_email = lower(owner_email)),
   owner_user_id text UNIQUE,
   purchases_enabled boolean NOT NULL DEFAULT false
 );
+ALTER TABLE gateway_workspaces ALTER COLUMN owner_email DROP NOT NULL;
 CREATE TABLE IF NOT EXISTS gateway_keys (
   id uuid PRIMARY KEY,
   client_id text NOT NULL REFERENCES gateway_clients(id),
@@ -50,4 +51,15 @@ CREATE TABLE IF NOT EXISTS gateway_keys (
   revoked_at timestamptz
 );
 CREATE INDEX IF NOT EXISTS gateway_active_keys ON gateway_keys(client_id) WHERE revoked_at IS NULL;
+-- Production uses a column-restricted login. Development may use the owner.
+DO $$
+BEGIN
+  IF EXISTS (SELECT FROM pg_roles WHERE rolname='coglyde_gateway_runtime') THEN
+    GRANT SELECT ON gateway_workspaces, gateway_keys TO coglyde_gateway_runtime;
+    GRANT UPDATE(owner_user_id) ON gateway_workspaces TO coglyde_gateway_runtime;
+    GRANT INSERT(id, client_id, name, key_digest, suffix), UPDATE(revoked_at)
+      ON gateway_keys TO coglyde_gateway_runtime;
+    GRANT UPDATE(key_digest) ON gateway_clients TO coglyde_gateway_runtime;
+  END IF;
+END $$;
 COMMIT;

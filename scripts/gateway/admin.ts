@@ -42,12 +42,14 @@ async function run() {
   if (!/^[A-Z][A-Z0-9_]{0,47}$/.test(id ?? ""))
     throw Error("Expected client ID in uppercase snake case");
   if (action === "workspace") {
-    const email = z.email().parse(argument).toLowerCase();
+    const email = argument === "-" ? null : z.email().parse(argument).toLowerCase();
     const name = z.string().trim().min(1).max(100).parse(process.argv[5]);
     const rows =
       await sql`INSERT INTO gateway_workspaces (client_id, display_name, owner_email)
       VALUES (${id}, ${name}, ${email}) ON CONFLICT (client_id) DO UPDATE
-      SET display_name=excluded.display_name WHERE gateway_workspaces.owner_email=excluded.owner_email
+      SET display_name=excluded.display_name, owner_email=excluded.owner_email
+      WHERE gateway_workspaces.owner_email IS NOT DISTINCT FROM excluded.owner_email
+        OR (gateway_workspaces.owner_email IS NULL AND gateway_workspaces.owner_user_id IS NULL)
       RETURNING client_id`;
     if (!rows.length) throw Error("Workspace already has a different owner");
     return;
