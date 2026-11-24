@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { randomBytes } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { db, digest, finish } from "../../src/lib/gateway/ledger";
@@ -40,6 +41,25 @@ async function run() {
   }
   if (!/^[A-Z][A-Z0-9_]{0,47}$/.test(id ?? ""))
     throw Error("Expected client ID in uppercase snake case");
+  if (action === "workspace") {
+    const email = z.email().parse(argument).toLowerCase();
+    const name = z.string().trim().min(1).max(100).parse(process.argv[5]);
+    const rows =
+      await sql`INSERT INTO gateway_workspaces (client_id, display_name, owner_email)
+      VALUES (${id}, ${name}, ${email}) ON CONFLICT (client_id) DO UPDATE
+      SET display_name=excluded.display_name WHERE gateway_workspaces.owner_email=excluded.owner_email
+      RETURNING client_id`;
+    if (!rows.length) throw Error("Workspace already has a different owner");
+    return;
+  }
+  if (action === "purchases") {
+    const state = z.enum(["on", "off"]).parse(argument);
+    const rows =
+      await sql`UPDATE gateway_workspaces SET purchases_enabled=${state === "on"}
+      WHERE client_id=${id} RETURNING client_id`;
+    if (!rows.length) throw Error("Workspace not found");
+    return;
+  }
   if (action === "create" || action === "policy") {
     const policy = policySchema.parse(
       JSON.parse(await readFile(argument, "utf8")),
@@ -55,7 +75,9 @@ async function run() {
     if (!changed.length) throw Error("Client not found");
     return;
   }
-  throw Error("Expected migrate, create, policy, pending, settle, or release");
+  throw Error(
+    "Expected migrate, create, workspace, purchases, policy, pending, settle, or release",
+  );
 }
 
 run()
