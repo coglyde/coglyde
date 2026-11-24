@@ -159,3 +159,35 @@ export function complete(route: Route, chat: Chat, key: string) {
     }),
   });
 }
+
+// This is a read of the original request. It never initiates another completion.
+export async function settledListTotal(
+  route: Route,
+  reference: string,
+  cost: number,
+  key: string,
+) {
+  if (!/^[A-Za-z0-9_-]{1,128}$/.test(reference)) return undefined;
+  try {
+    const res = await fetch(marketplaceOrigin() + "/v1/requests/" + reference, {
+      headers: { Authorization: "Bearer " + key },
+      redirect: "error",
+      cache: "no-store",
+      signal: AbortSignal.timeout(3000),
+    });
+    if (!res.ok) return undefined;
+    const record = await res.json();
+    if (
+      record?.request_id === reference &&
+      record.model === route.model &&
+      record.provider === route.offer.provider_id &&
+      record.settlement_group === "settled" &&
+      record.buyer_cost_micro === cost &&
+      Number.isSafeInteger(record.direct_cost_micro)
+    )
+      return record.direct_cost_micro as number;
+  } catch {
+    // Missing scope, delay or a timeout leaves the existing reconciliation hold.
+  }
+  return undefined;
+}

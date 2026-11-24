@@ -127,6 +127,40 @@ export function compareUsage(
   };
 }
 
+// A non-streaming marketplace receipt can report the direct list total even when
+// it omits the cache split. Accept only totals possible under our captured rates.
+export function compareReportedList(
+  rate: ListPrice,
+  usage: Meter,
+  microUsd: number,
+) {
+  if (
+    !Number.isSafeInteger(microUsd) ||
+    microUsd < 0 ||
+    usage.prompt_tokens_details?.cached_tokens !== undefined
+  )
+    return null;
+  const totalWithCache = (cached_tokens: number) =>
+    compareUsage(rate, { ...usage, prompt_tokens_details: { cached_tokens } })!
+      .microUsd;
+  if (
+    microUsd < totalWithCache(usage.prompt_tokens) ||
+    microUsd > totalWithCache(0)
+  )
+    return null;
+  return {
+    microUsd,
+    source: rate.source,
+    rateDate: rate.rateDate,
+    discountBps: rate.discountBps,
+    basis: "standard_text_upstream_list_total",
+    // The upstream total is already rounded. Round down for the customer.
+    listChargeMicro: Math.floor(
+      (microUsd * (10000 - rate.discountBps)) / 10000,
+    ),
+  };
+}
+
 export function retail(wholesale: number, markupBps: number) {
   return Math.ceil((wholesale * (10_000 + markupBps)) / 10_000);
 }

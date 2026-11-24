@@ -9,6 +9,7 @@ import { creditCandidates } from "../../src/lib/gateway/credits";
 import { chooseRoute } from "../../src/lib/gateway/market";
 import {
   chatSchema,
+  compareReportedList,
   compareUsage,
   directRate,
   policySchema,
@@ -126,6 +127,13 @@ test("Haiku receipts can settle missing cache counts only below the cache minimu
     32,
   );
 });
+test("market list reference is bounded by official pricing for the observed usage", () => {
+  const rate = { ...directRate("claude-haiku-5.5")!, discountBps: 2000 };
+  const usage = { prompt_tokens: 532, completion_tokens: 34 };
+  assert.equal(compareReportedList(rate, usage, 70)?.listChargeMicro, 56);
+  for (const amount of [-1, 0, 71, 70.1])
+    assert.equal(compareReportedList(rate, usage, amount), null);
+});
 test("list pricing applies to each model and rounds the discounted total once", async (t) => {
   const first = {
     prompt_tokens: 25,
@@ -200,10 +208,27 @@ test(
     let cost: string | null = "100";
     let calls = 0;
     let cached: number | undefined = 0;
+    let headerList: string | undefined;
+    let traceCost: number | undefined;
+    let traceModel = mini;
     t.mock.method(
       globalThis,
       "fetch",
       async (url: string, init?: RequestInit) => {
+        if (url.endsWith("/v1/requests/private-reference")) {
+          assert.equal(
+            new Headers(init?.headers).get("authorization"),
+            "Bearer dedicated-test-key",
+          );
+          return Response.json({
+            request_id: "private-reference",
+            provider: "openai",
+            model: traceModel,
+            settlement_group: "settled",
+            buyer_cost_micro: 100,
+            direct_cost_micro: traceCost,
+          });
+        }
         if (!url.endsWith("chat/completions")) return discovery(url);
         calls++;
         const body = JSON.parse(String(init?.body));
@@ -216,6 +241,7 @@ test(
         const responseHeaders = new Headers({
           "x-request-id": "private-reference",
         });
+        if (headerList) responseHeaders.set("x-si-list-cost-micro", headerList);
         if (cost !== null) responseHeaders.set("x-si-buyer-cost-micro", cost);
         return Response.json(
           {
@@ -308,6 +334,26 @@ test(
     };
     assert.equal((await finish(incomplete.id, 100, corrected)).charge, 420);
     await deposit(client, randomUUID(), 420);
+    headerList = "1199";
+    assert.equal((await (await call()).json()).billing.charge_micro, 959);
+    await deposit(client, randomUUID(), 959);
+    headerList = undefined;
+    traceCost = 1199;
+    traceModel = sonnet;
+    const wrongTrace = await (await call()).json();
+    assert.equal(wrongTrace.billing.status, "pending");
+    await finish(wrongTrace.id, 100, corrected);
+    await deposit(client, randomUUID(), 420);
+    traceModel = mini;
+    const matchedTrace = await (await call()).json();
+    assert.equal(matchedTrace.billing.charge_micro, 959);
+    assert.equal(
+      matchedTrace.billing.direct_estimate.basis,
+      "standard_text_upstream_list_total",
+    );
+    await deposit(client, randomUUID(), 959);
+    traceCost = undefined;
+
     cached = 0;
     const settled = await (await call()).json();
     assert.equal(settled.billing.charge_micro, 960);

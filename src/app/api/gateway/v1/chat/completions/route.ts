@@ -1,12 +1,23 @@
 import { z } from "zod";
-import { chatSchema, functionCall, meterSchema } from "@/lib/gateway/policy";
+import {
+  chatSchema,
+  compareUsage,
+  compareReportedList,
+  functionCall,
+  meterSchema,
+} from "@/lib/gateway/policy";
 import {
   creditCandidates,
   completeCredit,
   type CreditRoute,
 } from "@/lib/gateway/credits";
 import { monthlyTier } from "@/lib/gateway/tiers";
-import { chooseRoute, complete, type Route } from "@/lib/gateway/market";
+import {
+  chooseRoute,
+  complete,
+  settledListTotal,
+  type Route,
+} from "@/lib/gateway/market";
 import {
   authenticate,
   db,
@@ -113,8 +124,8 @@ export async function POST(request: Request) {
     }
     if (!id) throw Error("Missing request reservation");
     const reference =
-      response.headers.get("x-request-id") ??
-      response.headers.get("x-si-trace-id");
+      response.headers.get("x-si-trace-id") ??
+      response.headers.get("x-request-id");
     if (reference)
       await db()`UPDATE gateway_requests SET upstream_reference = ${reference} WHERE id = ${id}`;
     const rawCost = response.headers.get("x-si-buyer-cost-micro");
@@ -142,10 +153,36 @@ export async function POST(request: Request) {
       !response.ok &&
       !priced &&
       [400, 401, 402, 403, 404, 413, 422, 429].includes(response.status);
+    let reportedListMicro: number | undefined;
+    if (
+      !usedCredit &&
+      response.ok &&
+      priced &&
+      usage.success &&
+      route.listPrice &&
+      usage.data.prompt_tokens_details?.cached_tokens === undefined &&
+      !compareUsage(route.listPrice, usage.data)
+    ) {
+      const header = response.headers.get("x-si-list-cost-micro");
+      if (
+        header &&
+        /^\d+$/.test(header) &&
+        compareReportedList(route.listPrice, usage.data, Number(header))
+      )
+        reportedListMicro = Number(header);
+      else if (reference)
+        reportedListMicro = await settledListTotal(
+          route,
+          reference,
+          cost,
+          upstreamKey(client.id),
+        );
+    }
     const { charge, comparison } = await finish(
       id,
       priced ? cost : refused ? null : undefined,
       response.ok && usage.success ? usage.data : undefined,
+      reportedListMicro,
     );
     if (!response.ok) {
       throw new GatewayError(
