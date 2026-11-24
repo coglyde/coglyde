@@ -1,6 +1,7 @@
 import { randomBytes, randomUUID } from "node:crypto";
 import {
   db,
+  buyerCredential,
   digest,
   GatewayError,
   history,
@@ -8,23 +9,53 @@ import {
 } from "./ledger";
 import { policySchema } from "./policy";
 
-// Provisioning authorizes one verified primary email. After first sign-in,
-// ownership is pinned to the Clerk user ID even if the email later changes.
+const personalPolicy = policySchema.parse({
+  models: ["claude-haiku-5.5", "gpt-5.4-mini"],
+  providers: ["anthropic", "openai"],
+  trustedOnly: true,
+  strategy: "lowest_cost",
+  listDiscountBps: 2000,
+  markupBps: 0,
+  requestCapMicroUsd: 50000,
+});
+
+// A verified email can claim an invitation once. Returning owners are
+// always resolved by their immutable Clerk ID, including after an email change.
 export async function ownedWorkspace(userId: string, verifiedEmail?: string) {
   const sql = db();
-  const columns = sql`w.client_id, w.display_name, w.purchases_enabled, c.policy,
-    (c.key_digest IS NOT NULL) AS has_original_key`;
-  const lookup = () => sql`SELECT ${columns} FROM gateway_workspaces w
-    JOIN gateway_clients c ON c.id=w.client_id
-    WHERE w.owner_user_id=${userId} AND c.enabled`;
-  let [workspace] = await lookup();
-  if (!workspace && verifiedEmail) {
-    await sql`UPDATE gateway_workspaces SET owner_user_id=${userId}
-      WHERE owner_email=${verifiedEmail.toLowerCase()} AND owner_user_id IS NULL
-      AND NOT EXISTS (SELECT 1 FROM gateway_workspaces WHERE owner_user_id=${userId})`;
-    [workspace] = await lookup();
-  }
-  return workspace ?? null;
+  return sql.begin(async (tx) => {
+    await tx`SELECT pg_advisory_xact_lock(hashtextextended(${userId}, 0))`;
+    const lookup =
+      () => tx`SELECT w.client_id, w.display_name, w.purchases_enabled, w.funding_note,
+      c.policy, c.enabled, (c.key_digest IS NOT NULL) AS has_original_key
+      FROM gateway_workspaces w JOIN gateway_clients c ON c.id=w.client_id
+      WHERE w.owner_user_id=${userId}`;
+    let [workspace] = await lookup();
+    if (!workspace) {
+      if (!verifiedEmail)
+        throw new GatewayError(
+          403,
+          "Verify your primary email address to open AI credits.",
+        );
+      const email = verifiedEmail.toLowerCase();
+      const [invite] =
+        await tx`SELECT client_id, owner_user_id FROM gateway_workspaces
+        WHERE owner_email=${email} FOR UPDATE`;
+      if (invite && !invite.owner_user_id) {
+        await tx`UPDATE gateway_workspaces SET owner_user_id=${userId} WHERE client_id=${invite.client_id}`;
+      } else {
+        const client =
+          "PERSONAL_" + randomUUID().replaceAll("-", "").toUpperCase();
+        await tx`INSERT INTO gateway_clients (id,policy) VALUES (${client},${tx.json(personalPolicy)})`;
+        await tx`INSERT INTO gateway_workspaces (client_id, display_name, owner_user_id, purchases_enabled)
+          VALUES (${client}, 'Personal workspace', ${userId}, true)`;
+      }
+      [workspace] = await lookup();
+    }
+    if (!workspace?.enabled)
+      throw new GatewayError(403, "This workspace is disabled.");
+    return workspace;
+  });
 }
 
 export async function workspaceOverview(
@@ -40,6 +71,11 @@ export async function workspaceOverview(
   const policy = policySchema.parse(workspace.policy);
   return {
     name: String(workspace.display_name),
+    fundingNote:
+      (workspace.funding_note as string | null) ||
+      (!buyerCredential(client) && !policy.creditGrants?.length
+        ? "You can add credits now. API usage will be available once routing is activated."
+        : null),
     purchasesEnabled: Boolean(workspace.purchases_enabled),
     availableMicro: String(usage.available_micro),
     discountBps: policy.listDiscountBps ?? null,

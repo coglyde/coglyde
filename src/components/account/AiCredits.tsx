@@ -50,7 +50,7 @@ export function AiCredits({
 }: {
   checkoutReturned?: boolean;
 }) {
-  const [workspace, setWorkspace] = useState<WorkspaceOverview | null>();
+  const [workspace, setWorkspace] = useState<WorkspaceOverview>();
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [amount, setAmount] = useState("10");
@@ -117,12 +117,6 @@ export function AiCredits({
           Loading workspace…
         </p>
       )}
-      {workspace === null && (
-        <p className="text-white/70">
-          No AI workspace is linked to this account. Contact Coglyde to connect
-          your workspace.
-        </p>
-      )}
       {workspace && (
         <>
           <section className="rounded-2xl border border-white/15 bg-white/[0.025] p-5 sm:p-7">
@@ -134,6 +128,11 @@ export function AiCredits({
               <p className="mt-2 text-sm text-white/65">
                 Your rate is {workspace.discountBps / 100}% below the provider’s
                 direct price.
+              </p>
+            )}
+            {workspace.fundingNote && (
+              <p className="mt-3 text-sm text-white/70">
+                {workspace.fundingNote}
               </p>
             )}
             {workspace.purchasesEnabled ? (
