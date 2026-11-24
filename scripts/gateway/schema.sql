@@ -41,6 +41,7 @@ CREATE TABLE IF NOT EXISTS gateway_workspaces (
   purchases_enabled boolean NOT NULL DEFAULT false
 );
 ALTER TABLE gateway_workspaces ALTER COLUMN owner_email DROP NOT NULL;
+ALTER TABLE gateway_workspaces ADD COLUMN IF NOT EXISTS funding_note text;
 CREATE TABLE IF NOT EXISTS gateway_keys (
   id uuid PRIMARY KEY,
   client_id text NOT NULL REFERENCES gateway_clients(id),
@@ -55,6 +56,8 @@ CREATE INDEX IF NOT EXISTS gateway_active_keys ON gateway_keys(client_id) WHERE 
 DO $$
 BEGIN
   IF EXISTS (SELECT FROM pg_roles WHERE rolname='coglyde_gateway_runtime') THEN
+    GRANT INSERT(id, policy) ON gateway_clients TO coglyde_gateway_runtime;
+    GRANT INSERT(client_id, display_name, owner_user_id, purchases_enabled) ON gateway_workspaces TO coglyde_gateway_runtime;
     GRANT SELECT ON gateway_workspaces, gateway_keys TO coglyde_gateway_runtime;
     GRANT UPDATE(owner_user_id) ON gateway_workspaces TO coglyde_gateway_runtime;
     GRANT INSERT(id, client_id, name, key_digest, suffix), UPDATE(revoked_at)

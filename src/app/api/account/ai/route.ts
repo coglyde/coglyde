@@ -29,7 +29,7 @@ export async function GET() {
   try {
     const workspace = await owner();
     return respond({
-      workspace: workspace ? await workspaceOverview(workspace) : null,
+      workspace: await workspaceOverview(workspace),
     });
   } catch (error) {
     return errorResponse(error);
@@ -58,7 +58,6 @@ export async function POST(request: Request) {
         "Open your Coglyde account to make this change.",
       );
     const workspace = await owner();
-    if (!workspace) throw new GatewayError(403, "No linked workspace.");
     const input = operation.safeParse(await readJson(request, 1024));
     if (!input.success)
       throw new GatewayError(400, "Check the details and try again.");

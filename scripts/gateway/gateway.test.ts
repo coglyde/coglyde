@@ -305,10 +305,23 @@ test(
     await sql`INSERT INTO gateway_workspaces (client_id,display_name,owner_email) VALUES
       (${client},'Workspace A',${emailA}), (${other},'Workspace B',${emailB})`;
     try {
-      assert.equal(await ownedWorkspace(ownerA), null);
+      await assert.rejects(ownedWorkspace(ownerA), /Verify your primary email/);
       const a = await ownedWorkspace(ownerA, emailA.toUpperCase());
       assert.equal(a?.client_id, client);
-      assert.equal(await ownedWorkspace(ownerB, emailA), null);
+      const personalOwner = "user_" + randomUUID();
+      const personal = await Promise.all(
+        Array.from({ length: 4 }, () => ownedWorkspace(personalOwner, emailA)),
+      );
+      const personalId = personal[0].client_id;
+      assert.ok(personal.every((w) => w.client_id === personalId));
+      assert.match(personalId, /^PERSONAL_[0-9A-F]{32}$/);
+      assert.equal(personal[0].purchases_enabled, true);
+      assert.equal((await workspaceOverview(personal[0])).availableMicro, "0");
+      assert.equal((await ownedWorkspace(personalOwner)).client_id, personalId);
+      await sql`UPDATE gateway_clients SET enabled=false WHERE id=${personalId}`;
+      await assert.rejects(ownedWorkspace(personalOwner, emailA), /disabled/);
+      await sql`DELETE FROM gateway_workspaces WHERE client_id=${personalId}`;
+      await sql`DELETE FROM gateway_clients WHERE id=${personalId}`;
       const b = await ownedWorkspace(ownerB, emailB);
       assert.equal(b?.client_id, other);
       assert.equal((await ownedWorkspace(ownerA, emailB))?.client_id, client);

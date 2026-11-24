@@ -49,8 +49,16 @@ export async function authenticate(request: Request) {
   if (!account) throw new GatewayError(401, "Invalid Coglyde key");
   return { id: String(account.id), policy: policySchema.parse(account.policy) };
 }
+export function buyerCredential(client: string) {
+  return (
+    process.env["GATEWAY_BUYER_KEY_" + client] ||
+    (/^PERSONAL_[0-9A-F]{32}$/.test(client)
+      ? process.env.GATEWAY_SELF_SERVE_BUYER_KEY
+      : undefined)
+  );
+}
 export function upstreamKey(client: string) {
-  const key = process.env["GATEWAY_BUYER_KEY_" + client];
+  const key = buyerCredential(client);
   if (!key) throw new GatewayError(503, "Routing is unavailable");
   return key;
 }
@@ -245,7 +253,7 @@ export async function deposit(
 // The supplier's final receipt can arrive after the model response. Reading
 // usage can then release the hold without a second paid inference request.
 export async function refreshPendingReceipts(client: string) {
-  const key = process.env["GATEWAY_BUYER_KEY_" + client];
+  const key = buyerCredential(client);
   if (!key) return;
   const pending =
     await db()`SELECT id, model, provider, upstream_reference, upstream_micro,

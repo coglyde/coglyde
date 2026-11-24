@@ -77,6 +77,14 @@ do not deposit money into either the provider account or the customer's wallet.
 ## Customer account access
 
 Run the idempotent `gateway:admin -- migrate` before deploying the account API.
+Customers opening AI credits with a verified primary email automatically receive a
+private, zero-balance workspace with Checkout enabled. Existing ownership or an
+unclaimed invitation for that verified email takes precedence. Personal workspaces
+may use the server-only `GATEWAY_SELF_SERVE_BUYER_KEY` for marketplace traffic.
+A dedicated client credential takes precedence. While routing is unavailable the
+dashboard explains that before checkout. An operator can set a workspace-specific
+`funding_note` for a limited pilot.
+
 For an existing gateway client, link the workspace with
 `npm run gateway:admin -- workspace CLIENT_ID owner@example.com "Workspace name"`.
 The first login with that verified primary Clerk email binds the workspace to
