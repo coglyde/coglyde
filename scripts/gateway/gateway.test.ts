@@ -343,9 +343,17 @@ test(
     traceModel = sonnet;
     const wrongTrace = await (await call()).json();
     assert.equal(wrongTrace.billing.status, "pending");
-    await finish(wrongTrace.id, 100, corrected);
-    await deposit(client, randomUUID(), 420);
     traceModel = mini;
+    const refreshed = await (
+      await GET(new Request("http://localhost/", { headers }))
+    ).json();
+    assert.equal(
+      refreshed.receipts.find((r: { id: string }) => r.id === wrongTrace.id)
+        .charge_micro,
+      "959",
+    );
+    assert.equal(refreshed.available_micro, "49041");
+    await deposit(client, randomUUID(), 959);
     const matchedTrace = await (await call()).json();
     assert.equal(matchedTrace.billing.charge_micro, 959);
     assert.equal(

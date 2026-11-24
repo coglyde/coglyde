@@ -172,7 +172,8 @@ export async function POST(request: Request) {
         reportedListMicro = Number(header);
       else if (reference)
         reportedListMicro = await settledListTotal(
-          route,
+          route.model,
+          route.offer.provider_id,
           reference,
           cost,
           upstreamKey(client.id),

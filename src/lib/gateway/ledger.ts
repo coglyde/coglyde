@@ -11,7 +11,7 @@ import {
 } from "./policy";
 import { monthlyTier } from "./tiers";
 import type { CreditRoute } from "./credits";
-import type { Route } from "./market";
+import { settledListTotal, type Route } from "./market";
 
 let pool: ReturnType<typeof postgres> | undefined;
 export function db() {
@@ -237,6 +237,41 @@ export async function deposit(
         throw Error("Deposit reference already used");
     }
   });
+}
+
+// The supplier's final receipt can arrive after the model response. Reading
+// usage can then release the hold without a second paid inference request.
+export async function refreshPendingReceipts(client: string) {
+  const key = process.env["GATEWAY_BUYER_KEY_" + client];
+  if (!key) return;
+  const pending =
+    await db()`SELECT id, model, provider, upstream_reference, upstream_micro,
+    input_tokens, output_tokens FROM gateway_requests WHERE client_id=${client} AND status='pending'
+    AND list_price IS NOT NULL AND NOT (list_price ? 'creditHold') AND comparison IS NULL
+    AND upstream_micro IS NOT NULL AND upstream_reference IS NOT NULL AND input_tokens IS NOT NULL
+    AND output_tokens IS NOT NULL ORDER BY created_at DESC LIMIT 3`;
+  await Promise.all(
+    pending.map(async (row) => {
+      const cost = Number(row.upstream_micro);
+      const total = await settledListTotal(
+        row.model,
+        row.provider,
+        row.upstream_reference,
+        cost,
+        key,
+      );
+      if (total !== undefined)
+        await finish(
+          row.id,
+          cost,
+          {
+            prompt_tokens: row.input_tokens,
+            completion_tokens: row.output_tokens,
+          },
+          total,
+        );
+    }),
+  );
 }
 
 export async function history(client: string) {
