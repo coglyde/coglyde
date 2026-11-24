@@ -68,6 +68,7 @@ export const meterSchema = z.object({
 export type Meter = z.infer<typeof meterSchema>;
 type DirectRate = (typeof directRates)[string] & {
   rateDate: string;
+  minimumCacheTokens?: number;
   longContext?: { above: number; multiplier: number };
 };
 export type ListPrice = DirectRate & { discountBps: number };
@@ -77,6 +78,8 @@ export function directRate(model: string): DirectRate | null {
     ...directRates[model],
     rateDate: model === "claude-haiku-5.5" ? "2026-11-23" : "2026-11-22",
     ...(model === "claude-haiku-5.5" && {
+      // Anthropic documents a 512-token minimum cacheable prefix for Haiku 5.5.
+      minimumCacheTokens: 512,
       longContext: { above: 100_000, multiplier: 5 },
     }),
   };
@@ -87,9 +90,13 @@ export function compareUsage(
   usage: Meter,
   discountBps?: number,
 ) {
-  const cached = usage.prompt_tokens_details?.cached_tokens;
-  if (!rate || cached === undefined || cached > usage.prompt_tokens)
-    return null;
+  if (!rate) return null;
+  const reported = usage.prompt_tokens_details?.cached_tokens;
+  const belowMinimum =
+    rate.minimumCacheTokens !== undefined &&
+    usage.prompt_tokens < rate.minimumCacheTokens;
+  const cached = reported ?? (belowMinimum ? 0 : undefined);
+  if (cached === undefined || cached > usage.prompt_tokens) return null;
   const factor =
     rate.longContext && usage.prompt_tokens > rate.longContext.above
       ? rate.longContext.multiplier
@@ -103,7 +110,10 @@ export function compareUsage(
   return {
     microUsd: Math.round(exactMicro),
     source: rate.source,
-    basis: "standard_text_reported_cache",
+    basis:
+      reported === undefined
+        ? "standard_text_below_cache_minimum"
+        : "standard_text_reported_cache",
     rateDate: rate.rateDate,
     ...(discountBps === undefined
       ? {}

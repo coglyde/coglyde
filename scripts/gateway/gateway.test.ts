@@ -108,6 +108,24 @@ test("direct text estimates use reported cache reads; unsupported comparisons ar
   );
   assert.equal(compareUsage(directRate("unknown"), usage), null);
 });
+test("Haiku receipts can settle missing cache counts only below the cache minimum", () => {
+  const rate = directRate("claude-haiku-5.5");
+  const usage = { prompt_tokens: 436, completion_tokens: 54 };
+  assert.equal(compareUsage(rate, usage, 2000)?.listChargeMicro, 56);
+  assert.equal(
+    compareUsage(rate, usage)?.basis,
+    "standard_text_below_cache_minimum",
+  );
+  assert.equal(compareUsage(rate, { ...usage, prompt_tokens: 512 }), null);
+  assert.equal(
+    compareUsage(rate, {
+      ...usage,
+      prompt_tokens: 512,
+      prompt_tokens_details: { cached_tokens: 512 },
+    })?.microUsd,
+    32,
+  );
+});
 test("list pricing applies to each model and rounds the discounted total once", async (t) => {
   const first = {
     prompt_tokens: 25,
