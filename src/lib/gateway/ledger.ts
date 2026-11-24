@@ -41,8 +41,11 @@ export async function authenticate(request: Request) {
     request.headers.get("authorization") ?? "",
   );
   if (!match) throw new GatewayError(401, "Invalid Coglyde key");
-  const [account] =
-    await db()`SELECT id, policy FROM gateway_clients WHERE enabled AND key_digest = ${digest(match[1])}`;
+  const hash = digest(match[1]);
+  const [account] = await db()`SELECT c.id, c.policy FROM gateway_clients c
+    WHERE c.enabled AND (c.key_digest = ${hash} OR c.id = (
+      SELECT client_id FROM gateway_keys WHERE key_digest = ${hash} AND revoked_at IS NULL
+    ))`;
   if (!account) throw new GatewayError(401, "Invalid Coglyde key");
   return { id: String(account.id), policy: policySchema.parse(account.policy) };
 }

@@ -57,6 +57,8 @@ export default async function AccountPage({
       <Header />
       <main className="mx-auto min-h-screen max-w-7xl px-6 pt-28 pb-20 sm:pt-32">
         <AccountDashboard
+          checkoutReturned={sp.checkout === "returned"}
+          openCredits={sp.section === "ai"}
           subscriptions={subscriptions}
           hasSubscriptions={subscriptions.length > 0}
           capabilities={capabilities}

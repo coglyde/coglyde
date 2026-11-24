@@ -8,6 +8,7 @@ import {
   Sparkles,
   BarChart3,
   CreditCard,
+  Wallet,
   Settings as SettingsIcon,
   LifeBuoy,
   type LucideIcon,
@@ -19,6 +20,7 @@ import { ContentEditor } from "./ContentEditor";
 import { ContentRequests } from "./ContentRequests";
 import { AnalyticsPlaceholder } from "./AnalyticsPlaceholder";
 import { SubscriptionSection } from "./SubscriptionSection";
+import { AiCredits } from "./AiCredits";
 import { AccountSettings } from "./AccountSettings";
 import { ContactSupport } from "./ContactSupport";
 import type { PlanSummary } from "@/lib/stripe-customer";
@@ -31,6 +33,7 @@ export type SectionId =
   | "edit"
   | "content"
   | "analytics"
+  | "ai"
   | "billing"
   | "settings"
   | "support";
@@ -43,6 +46,8 @@ type Props = {
   userName: string;
   site: ClientSite;
   isAdmin: boolean;
+  openCredits?: boolean;
+  checkoutReturned?: boolean;
   impersonating?: { id: string; name: string } | null;
 };
 
@@ -53,6 +58,8 @@ export function AccountDashboard({
   userName,
   site,
   isAdmin,
+  openCredits,
+  checkoutReturned,
   impersonating,
 }: Props) {
   // When an admin is viewing as a client, the content + request sections act on
@@ -65,19 +72,21 @@ export function AccountDashboard({
     { id: "edit", label: "Site updates", icon: SquarePen },
     { id: "content", label: "Request changes", icon: Sparkles },
     { id: "analytics", label: "Analytics", icon: BarChart3 },
+    { id: "ai", label: "AI credits", icon: Wallet },
     { id: "billing", label: "Billing", icon: CreditCard },
     { id: "settings", label: "Settings", icon: SettingsIcon },
     { id: "support", label: "Support", icon: LifeBuoy },
   ];
   // Gate the admin view, direct editors, and the AI request flow on access.
   const items = allItems.filter((item) => {
+    if (item.id === "ai") return !impersonating;
     if (item.id === "sites") return isAdmin;
     if (item.id === "edit") return canEdit;
     if (item.id === "content") return capabilities.siteUpdates;
     return true;
   });
   const [active, setActive] = useState<SectionId>(
-    isAdmin ? "sites" : canEdit ? "edit" : capabilities.siteUpdates ? "content" : "overview",
+    openCredits && !impersonating ? "ai" : isAdmin ? "sites" : canEdit ? "edit" : capabilities.siteUpdates ? "content" : "overview",
   );
 
   return (
@@ -139,6 +148,7 @@ export function AccountDashboard({
         {active === "edit" && <ContentEditor clientId={clientId} />}
         {active === "content" && <ContentRequests clientId={clientId} />}
         {active === "analytics" && <AnalyticsPlaceholder />}
+        {active === "ai" && !impersonating && <AiCredits checkoutReturned={checkoutReturned} />}
         {active === "billing" && (
           <SubscriptionSection subscriptions={subscriptions} hasSubscriptions={hasSubscriptions} />
         )}

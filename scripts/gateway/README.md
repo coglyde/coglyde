@@ -73,3 +73,23 @@ after accounting for pending requests. No listed model with enough allowance
 returns HTTP 429. A missing offer for the eligible tier returns HTTP 503. Usage
 periods begin on the first of each calendar month at 00:00 UTC. These limits
 do not deposit money into either the provider account or the customer's wallet.
+
+## Customer account access
+
+Run the idempotent `gateway:admin -- migrate` before deploying the account API.
+For an existing gateway client, link the workspace with
+`npm run gateway:admin -- workspace CLIENT_ID owner@example.com "Workspace name"`.
+The first login with that verified primary Clerk email binds the workspace to
+the Clerk user ID. The command can rename a workspace with the same owner.
+For a new tenant, run the existing client creation and supplier provisioning
+steps first. Pricing and routing remain in its policy.
+
+After confirming supplier capacity, run
+`npm run gateway:admin -- purchases CLIENT_ID on` to enable prepaid Checkout
+for that workspace. Use `off` to pause new Checkout sessions. Payments already
+accepted still credit the original workspace through the signed webhook.
+
+Owners open `/account?section=ai` to fund the wallet, see receipts or manage
+keys. For rotation, create a replacement, install it on the calling server,
+verify it works, then revoke the old key. Revocation also supports the original
+key issued by the admin CLI. Store raw keys only on the calling server.

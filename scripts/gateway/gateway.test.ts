@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 import { randomBytes, randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import type Stripe from "stripe";
+import { getStripe } from "../../src/lib/stripe";
+import { POST as receiveWebhook } from "../../src/app/api/stripe/webhook/route";
 import { POST } from "../../src/app/api/gateway/v1/chat/completions/route";
 import { GET } from "../../src/app/api/gateway/v1/usage/route";
 import { creditCandidates } from "../../src/lib/gateway/credits";
@@ -22,6 +24,13 @@ import {
   history,
   reserve,
 } from "../../src/lib/gateway/ledger";
+import {
+  createWorkspaceKey,
+  ownedWorkspace,
+  revokeWorkspaceKey,
+  workspaceOverview,
+} from "../../src/lib/gateway/workspace";
+import { creditCheckout } from "../../src/lib/gateway/checkout";
 import { processGatewayPayment } from "../../src/lib/gateway/stripe";
 import { monthlyTier } from "../../src/lib/gateway/tiers";
 import { maxListCost } from "../../src/lib/gateway/credits";
@@ -285,6 +294,123 @@ test(
       processGatewayPayment(event),
     ]);
     assert.equal((await history(client)).available_micro, "50000");
+    // A second owner gets their own workspace, even if they supply another
+    // tenant's email after it has already been claimed.
+    const other = client + "_SECOND";
+    const ownerA = "user_" + randomUUID(),
+      ownerB = "user_" + randomUUID();
+    const emailA = client.toLowerCase() + "@example.test";
+    const emailB = other.toLowerCase() + "@example.test";
+    await sql`INSERT INTO gateway_clients (id,policy) VALUES (${other},${sql.json(policy)})`;
+    await sql`INSERT INTO gateway_workspaces (client_id,display_name,owner_email) VALUES
+      (${client},'Workspace A',${emailA}), (${other},'Workspace B',${emailB})`;
+    try {
+      assert.equal(await ownedWorkspace(ownerA), null);
+      const a = await ownedWorkspace(ownerA, emailA.toUpperCase());
+      assert.equal(a?.client_id, client);
+      assert.equal(await ownedWorkspace(ownerB, emailA), null);
+      const b = await ownedWorkspace(ownerB, emailB);
+      assert.equal(b?.client_id, other);
+      assert.equal((await ownedWorkspace(ownerA, emailB))?.client_id, client);
+      assert.equal((await workspaceOverview(b!)).availableMicro, "0");
+      const named = await createWorkspaceKey(client, "Coaching portal");
+      const appRequest = () =>
+        new Request("http://localhost/", {
+          headers: { authorization: "Bearer " + named.secret },
+        });
+      assert.equal((await GET(appRequest())).status, 200);
+      const myKeys = (await workspaceOverview(a!)).keys;
+      assert.ok(myKeys.some((k) => k.id === named.id));
+      assert.ok(!JSON.stringify(myKeys).includes(named.secret));
+      assert.equal((await workspaceOverview(b!)).keys.length, 0);
+      await assert.rejects(
+        revokeWorkspaceKey(other, named.id),
+        /Key not found/,
+      );
+      await assert.rejects(
+        creditCheckout(client, 1000, randomUUID()),
+        /paused/,
+      );
+      process.env.STRIPE_SECRET_KEY = "sk_test_gateway_fixture";
+      process.env.STRIPE_WEBHOOK_SECRET = "whsec_gateway_fixture";
+      await sql`UPDATE gateway_workspaces SET purchases_enabled=true WHERE client_id=${other}`;
+      const stripe = getStripe()!;
+      const checkoutId = "cs_test_" + randomUUID();
+      let sessionMetadata: Stripe.MetadataParam | undefined;
+      const createSession = t.mock.method(
+        stripe.checkout.sessions,
+        "create",
+        async (params: Stripe.Checkout.SessionCreateParams) => {
+          assert.equal(params.line_items?.[0]?.price_data?.unit_amount, 1000);
+          sessionMetadata = params.metadata;
+          return { url: "https://checkout.stripe.com/test-fixture" };
+        },
+      );
+      assert.equal(
+        await creditCheckout(other, 1000, randomUUID()),
+        "https://checkout.stripe.com/test-fixture",
+      );
+      createSession.mock.restore();
+      assert.deepEqual(sessionMetadata, {
+        product: "gateway_credit",
+        gateway_client: other,
+      });
+      const sendPayment = (status: string, valid = true) => {
+        const payload = JSON.stringify({
+          type: "checkout.session.completed",
+          data: {
+            object: {
+              id: checkoutId,
+              mode: "payment",
+              currency: "usd",
+              amount_total: 1000,
+              payment_status: status,
+              metadata: sessionMetadata,
+            },
+          },
+        });
+        const signature = stripe.webhooks.generateTestHeaderString({
+          payload,
+          secret: valid ? process.env.STRIPE_WEBHOOK_SECRET! : "wrong",
+        });
+        return receiveWebhook(
+          new Request("http://localhost/api/stripe/webhook", {
+            method: "POST",
+            headers: { "stripe-signature": signature },
+            body: payload,
+          }),
+        );
+      };
+      assert.equal((await sendPayment("paid", false)).status, 400);
+      assert.equal((await sendPayment("unpaid")).status, 200);
+      assert.equal((await workspaceOverview(b!)).availableMicro, "0");
+      assert.equal((await sendPayment("paid")).status, 200);
+      assert.equal((await sendPayment("paid")).status, 200);
+      assert.equal((await workspaceOverview(b!)).availableMicro, "10000000");
+      assert.equal((await workspaceOverview(a!)).availableMicro, "50000");
+      const completion = await POST(
+        new Request("http://localhost/", {
+          method: "POST",
+          headers: {
+            authorization: "Bearer " + named.secret,
+            "Idempotency-Key": randomUUID(),
+          },
+          body: JSON.stringify(chat),
+        }),
+      );
+      assert.equal(completion.status, 200);
+      assert.equal((await workspaceOverview(b!)).receipts.length, 0);
+      assert.equal((await workspaceOverview(a!)).availableMicro, "49880");
+      assert.equal((await workspaceOverview(b!)).availableMicro, "10000000");
+      await revokeWorkspaceKey(client, named.id);
+      assert.equal((await GET(appRequest())).status, 401);
+      await deposit(client, randomUUID(), 120);
+    } finally {
+      await sql`DELETE FROM gateway_deposits WHERE client_id=${other}`;
+      await sql`DELETE FROM gateway_keys WHERE client_id=${client}`;
+      await sql`DELETE FROM gateway_workspaces WHERE client_id IN (${client},${other})`;
+      await sql`DELETE FROM gateway_clients WHERE id=${other}`;
+    }
     const shared = randomUUID();
     const replies = await Promise.all([call(shared), call(shared)]);
     assert.deepEqual(replies.map((r) => r.status).sort(), [200, 409]);
