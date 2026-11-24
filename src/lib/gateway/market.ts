@@ -162,7 +162,8 @@ export function complete(route: Route, chat: Chat, key: string) {
 
 // This is a read of the original request. It never initiates another completion.
 export async function settledListTotal(
-  route: Route,
+  model: string,
+  provider: string,
   reference: string,
   cost: number,
   key: string,
@@ -175,12 +176,15 @@ export async function settledListTotal(
       cache: "no-store",
       signal: AbortSignal.timeout(3000),
     });
-    if (!res.ok) return undefined;
+    if (!res.ok) {
+      console.warn("Gateway receipt lookup HTTP status", res.status);
+      return undefined;
+    }
     const record = await res.json();
     if (
       record?.request_id === reference &&
-      record.model === route.model &&
-      record.provider === route.offer.provider_id &&
+      record.model === model &&
+      record.provider === provider &&
       record.settlement_group === "settled" &&
       record.buyer_cost_micro === cost &&
       Number.isSafeInteger(record.direct_cost_micro)

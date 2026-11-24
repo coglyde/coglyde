@@ -1,8 +1,14 @@
-import { authenticate, errorResponse, history } from "@/lib/gateway/ledger";
+import {
+  authenticate,
+  errorResponse,
+  history,
+  refreshPendingReceipts,
+} from "@/lib/gateway/ledger";
 
 export async function GET(request: Request) {
   try {
     const client = await authenticate(request);
+    await refreshPendingReceipts(client.id);
     const usage = await history(client.id);
     return Response.json(
       {
