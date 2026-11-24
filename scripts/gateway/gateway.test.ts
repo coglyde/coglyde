@@ -316,7 +316,9 @@ test(
       assert.ok(personal.every((w) => w.client_id === personalId));
       assert.match(personalId, /^PERSONAL_[0-9A-F]{32}$/);
       assert.equal(personal[0].purchases_enabled, true);
-      assert.equal((await workspaceOverview(personal[0])).availableMicro, "0");
+      const overview = await workspaceOverview(personal[0]);
+      assert.equal(overview.availableMicro, "0");
+      assert.equal(overview.discountBps, 1500);
       assert.equal((await ownedWorkspace(personalOwner)).client_id, personalId);
       await sql`UPDATE gateway_clients SET enabled=false WHERE id=${personalId}`;
       await assert.rejects(ownedWorkspace(personalOwner, emailA), /disabled/);
